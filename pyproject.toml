@@ -18,7 +18,16 @@ classifiers = [
 ]
 license = {text = "MIT license"}
 dependencies = [
-  
+    "numpy",
+    "pandas",
+    "xarray",
+    "antimeridian",
+    "shapely",
+    "tqdm",
+    "geopandas",
+    "geodatasets",
+    "cdsodatacli",
+    "h5netcdf"  
 ]
 
 [project.optional-dependencies]
