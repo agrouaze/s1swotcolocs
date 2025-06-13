@@ -1,7 +1,0 @@
-# 13 June 2025, validation of the docker image ubuntu22.04 to run the meta coloc script
-docker build . -t s1swot:0.0.1
-docker run -it -v /home/datawork-cersat-public:/home/datawork-cersat-public -v /home1/datahome:/home1/datahome -v /home1/scratch:/home1/scratch/ s1swot:0.0.1 /bin/bash
-docker exec a65d52d107d8 python /home1/datahome/agrouaze/sources/sentinel1/coloc_SWOT/coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel.py --startmonth 20250601 --stopmonth 20250602 --outputdir /home1/scratch/agrouaze/
-docker login gitlab-registry.ifremer.fr
-docker tag s1swot:0.0.1 gitlab-registry.ifremer.fr/lops-wave/s1ifr:s1swot-0.0.1
-docker push gitlab-registry.ifremer.fr/lops-wave/s1ifr:s1swot-0.0.1
