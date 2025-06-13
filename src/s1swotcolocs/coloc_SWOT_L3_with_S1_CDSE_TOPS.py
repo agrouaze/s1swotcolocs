@@ -24,6 +24,9 @@ import geopandas as gpd
 import geodatasets
 import cdsodatacli
 import cdsodatacli.query
+from s1swotcolocs.utils import conf
+
+
 
 app_logger = logging.getLogger(__file__)
 LOGGERS_TO_SILENCE = ["cdsodatacli", "cdsodatacli.query"]
@@ -38,9 +41,8 @@ from scipy import spatial
 
 MAX_AREA_SIZE = 200
 DELTA_HOURS = 1
-dswot = '/home/datawork-cersat-public/provider/aviso/satellite/l3/swot/karin/l3_lr_ssh_expert'
-# CACHE_CDSE = '/home1/scratch/agrouaze/cache_cdse_odatacli/'
-CACHE_CDSE = '/home1/datawork/agrouaze/cache_cdse_odatacli/'
+dswot = conf['SWOT_L3_AVISO_DIR']
+CACHE_CDSE = conf['CACHE_CDSE']
 
 class CDSODATACLIQueryFilter(logging.Filter):
     def filter(self, record):
@@ -234,7 +236,7 @@ def get_swot_geoloc(one_swot_l3_file, delta_hours=6, mode='IW', producttype="SLC
     return sub_gdf, cpt
 
 
-def do_cdse_query(gdf, mini_ocean=10, cach='/home1/scratch/agrouaze/cache_cdse_odatacli/'):
+def do_cdse_query(gdf, mini_ocean=10, cach):
     collected_data_norm = cdsodatacli.query.fetch_data(gdf, min_sea_percent=mini_ocean,
                                                        timedelta_slice=datetime.timedelta(days=4), cache_dir=cach)
     # print(collected_data_norm)
