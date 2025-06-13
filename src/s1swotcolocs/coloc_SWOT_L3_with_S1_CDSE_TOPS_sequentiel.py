@@ -108,12 +108,6 @@ def main():
         # )
         logger = setup_logging(logging.INFO)
 
-    #prunexe = "/appli/prun/bin/prun"
-    #username = getpass.getuser()
-    #logging.info('prunexe : %s',prunexe)
-    #ontheflymodifiedlisting = os.path.join('/home1/scratch/',username,'tmp_listing_s1_swot_metadata_colo_files_production.txt')
-    #fid =open(ontheflymodifiedlisting,'w')
-    #lines = []
     logger.info('start loops')
     for mode in ['IW','EW']:
         logger.info('treat %s',mode)
@@ -132,22 +126,6 @@ def main():
             #lines.append(uu2)
             #logging.debug(' %s',uu2)
     logger.info('je termine la loop dans %s',os.path.basename(__file__))
-    #fid.close()
-    #logging.info('temporary listing updated : %s',ontheflymodifiedlisting)
-    #cpt = len(lines)
-    #logging.info('number of lines in the job array : %i',cpt)
-
-    #pbs = os.path.abspath(os.path.join(os.path.dirname(__file__),'coloc_SWOT_L3_with_S1_CDSE_TOPS.pbs'))
-    #logging.info('pbs : %s',pbs)
-    #assert os.path.exists(pbs)
-    # call prun
-    # logging.info('pbs = %s',pbs)
-    #opts = " --split-max-lines=50 -e "
-    #py2 = "/home1/datawork/agrouaze/conda_envs2/envs/py2.7_cwave/bin/python "
-    #cmd = py2 + prunexe + opts + pbs + " " + ontheflymodifiedlisting
-    #logging.info("cmd to cast = %s", cmd)
-    #st = subprocess.check_call(cmd, shell=True)
-    #logging.info("status cmd = %s", st)
 
 
 if __name__ == "__main__":

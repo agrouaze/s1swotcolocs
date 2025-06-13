@@ -6,15 +6,15 @@ import logging
 import argparse
 import os  # <--- NEW: Import the os module
 from datetime import date, timedelta, datetime
-
+from s1swotcolocs.utils import conf
 # --- Configuration ---
-DOCKER_BINARY_PATH = "/appli/docker/20.10.14/bin/docker"
-DOCKER_IMAGE = "gitlab-registry.ifremer.fr/lops-wave/s1ifr:s1swot-0.0.1"
-HOST_DATAWORK = "/home1/datawork"
-HOST_SOURCES_DIR = "/home1/datahome/agrouaze/sources"
-HOST_SOURCES_DATA = "/home/datawork-cersat-public"
-HOST_OUTPUT_DIR = "/home/datawork-cersat-public/cache/project/mpc-sentinel1/analysis/s1_data_analysis/coloc/swot_s1/"
-CONTAINER_SCRIPT_PATH = "/home1/datahome/agrouaze/sources/sentinel1/coloc_SWOT/coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel.py"
+DOCKER_BINARY_PATH = conf['DOCKER_BINARY_PATH']
+DOCKER_IMAGE = conf['DOCKER_IMAGE']
+HOST_DATAWORK = conf['HOST_DATAWORK']
+HOST_SOURCES_DIR = conf['HOST_SOURCES_DIR']
+HOST_SOURCES_DATA = conf['HOST_SOURCES_DATA']
+HOST_OUTPUT_DIR = conf['HOST_OUTPUT_DIR']
+CONTAINER_SCRIPT_PATH = conf['CONTAINER_SCRIPT_PATH']
 # --- End of Configuration ---
 
 
