@@ -1,14 +1,11 @@
 import logging
-import os
 
 from yaml import CLoader as Loader
 from yaml import load
 
-import s1swotcolocs
 
 logger = logging.getLogger("s1swotcolocs.get_config_info")
 logger.addHandler(logging.NullHandler())
-
 
 
 # def get_config_file_path():
@@ -35,6 +32,7 @@ logger.addHandler(logging.NullHandler())
 #
 #     logger.info("Config path: %s", config_path)
 #     return config_path
+
 
 def get_conf_content(conf_path):
     # stream = open(get_config_file_path(), "r")

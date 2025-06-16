@@ -1,7 +1,7 @@
 """Top-level package for s1swotcolocs."""
 
 __author__ = """Antoine Grouazel"""
-__email__ = 'antoine.grouazel@ifremer.fr'
+__email__ = "antoine.grouazel@ifremer.fr"
 try:
     from importlib import metadata
 except ImportError:  # for Python<3.8
