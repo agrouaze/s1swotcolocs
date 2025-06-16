@@ -6,16 +6,8 @@ import logging
 import argparse
 import os  # <--- NEW: Import the os module
 from datetime import date, timedelta, datetime
-from s1swotcolocs.utils import conf
-# --- Configuration ---
-DOCKER_BINARY_PATH = conf['DOCKER_BINARY_PATH']
-DOCKER_IMAGE = conf['DOCKER_IMAGE']
-HOST_DATAWORK = conf['HOST_DATAWORK']
-HOST_SOURCES_DIR = conf['HOST_SOURCES_DIR']
-HOST_SOURCES_DATA = conf['HOST_SOURCES_DATA']
-HOST_OUTPUT_DIR = conf['HOST_OUTPUT_DIR']
-CONTAINER_SCRIPT_PATH = conf['CONTAINER_SCRIPT_PATH']
-# --- End of Configuration ---
+from s1swotcolocs.utils import get_conf_content
+
 
 
 def setup_logging():
@@ -84,10 +76,21 @@ def main():
     parser = argparse.ArgumentParser(description="Wrapper script to run S1/SWOT collocation.", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--startdate', type=str, default=None, help="The start date in YYYYMMDD format.")
     parser.add_argument('--stopdate', type=str, default=None, help="The stop date in YYYYMMDD format.")
+    parser.add_argument('--confpath',help='path of the config.yml you want to use',required=True)
     args = parser.parse_args()
 
     logging.info("Starting the S1/SWOT collocation wrapper script.")
-
+    logging.info('load the config file from :%s',args.confpath)
+    conf = get_conf_content(args.confpath)
+    # --- Configuration ---
+    DOCKER_BINARY_PATH = conf['DOCKER_BINARY_PATH']
+    DOCKER_IMAGE = conf['DOCKER_IMAGE']
+    HOST_DATAWORK = conf['HOST_DATAWORK']
+    HOST_SOURCES_DIR = conf['HOST_SOURCES_DIR']
+    HOST_SOURCES_DATA = conf['HOST_SOURCES_DATA']
+    HOST_OUTPUT_DIR = conf['HOST_OUTPUT_DIR']
+    CONTAINER_SCRIPT_PATH = 'coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel'
+    # --- End of Configuration ---
     if args.startdate and args.stopdate:
         if not is_valid_date_format(args.startdate) or not is_valid_date_format(args.stopdate):
             logging.error("Invalid date format. Please use YYYYMMDD.")
@@ -119,10 +122,12 @@ def main():
         "-v", f"{HOST_SOURCES_DATA}:{HOST_SOURCES_DATA}",
         "-v", f"{HOST_OUTPUT_DIR}:{HOST_OUTPUT_DIR}",
         DOCKER_IMAGE,
-        "python", "-u", CONTAINER_SCRIPT_PATH,
+        # "python", "-u", CONTAINER_SCRIPT_PATH,
+        CONTAINER_SCRIPT_PATH,
         "--startmonth", start_date,
         "--stopmonth", stop_date,
         "--outputdir", HOST_OUTPUT_DIR,
+        "--confpath", args.confpath
     ]
     stream_command(docker_run_command, "Execute collocation script in a new container")
 

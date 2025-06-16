@@ -24,7 +24,7 @@ import geopandas as gpd
 import geodatasets
 import cdsodatacli
 import cdsodatacli.query
-from s1swotcolocs.utils import conf
+from s1swotcolocs.utils import get_conf_content
 
 
 
@@ -39,10 +39,7 @@ for logger_name in LOGGERS_TO_SILENCE:
     lib_logger.setLevel(logging.CRITICAL + 1)  # Mettre un niveau très élevé pour être sûr
 from scipy import spatial
 
-MAX_AREA_SIZE = 200
-DELTA_HOURS = 1
-dswot = conf['SWOT_L3_AVISO_DIR']
-CACHE_CDSE = conf['CACHE_CDSE']
+
 
 class CDSODATACLIQueryFilter(logging.Filter):
     def filter(self, record):
@@ -118,13 +115,18 @@ def treat_a_clean_piece_of_swot_orbit(swotpiece, points, onedsswot, mode, produc
     return gdf
 
 
-def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', producttype="SLC"):
+def slice_swot(onedsswot, idxstart, idxstop, cpt, max_area_size, delta_hours=6, mode='IW', producttype="SLC"):
     """
     treat the SWOT swath by pieces to avoid too large polygon when computing the convex_hull of the piece
 
-    :param onedsswot:
-    :param idxstart:
-    :param idxstop:
+    :param onedsswot: xarray.Dataset SWOT L3 dataset
+    :param idxstart: int beginning of the part of SWOT orbit to be treated
+    :param idxstop: int end of the part of SWOT orbit to be treated
+    :param cpt: collections.defaultdict(int)
+    :param max_area_size: float maximum size of the SWOT polygon area (security to discard weird polygons)
+    :param delta_hours: int maximum time window (in hours) to search for S1 product around the SWOT date
+    :param mode: str IW or EW
+    :param producttype: str SLC or GRD
     :return:
         sub_gdf (list): list of the geodataframes computed on each piece of SWOT orbit
          (we can have several pieces per segment if there is land interrupting the swath)
@@ -171,7 +173,7 @@ def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', prod
                 if isinstance(subpartswot, MultiPolygon):
                     cpt['segment_interupted_by_land_and_antimeridian'] += 1
                     for yyp, subsubpartswot in enumerate(subpartswot.geoms):
-                        if subsubpartswot.area < MAX_AREA_SIZE:
+                        if subsubpartswot.area < max_area_size:
                             gdf = treat_a_clean_piece_of_swot_orbit(subsubpartswot, points, onedsswot, mode,
                                                                     producttype, delta_t_max)
                             sub_gdf.append(gdf)
@@ -179,7 +181,7 @@ def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', prod
                             cpt['segment_with_area_too_large'] += 1
                 else:
                     cpt['segment_interupted_by_land_only'] += 1
-                    if subpartswot.area < MAX_AREA_SIZE:
+                    if subpartswot.area < max_area_size:
                         gdf = treat_a_clean_piece_of_swot_orbit(subpartswot, points, onedsswot, mode, producttype,
                                                                 delta_t_max)
                         sub_gdf.append(gdf)
@@ -198,7 +200,7 @@ def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', prod
                 if isinstance(subpartswot, MultiPolygon):
                     cpt['segment_continuous_with_antimeridian'] += 1
                     for yyp, subsubpartswot in enumerate(subpartswot.geoms):
-                        if subsubpartswot.area < MAX_AREA_SIZE:
+                        if subsubpartswot.area < max_area_size:
                             gdf = treat_a_clean_piece_of_swot_orbit(subsubpartswot, points, onedsswot, mode,
                                                                     producttype,
                                                                     delta_t_max)
@@ -207,7 +209,7 @@ def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', prod
                             cpt['segment_with_area_too_large'] += 1
                 else:
                     cpt['segment_continuous_without_antimeridian'] += 1
-                    if subpartswot.area < MAX_AREA_SIZE:
+                    if subpartswot.area < max_area_size:
                         gdf = treat_a_clean_piece_of_swot_orbit(subpartswot, points, onedsswot, mode, producttype,
                                                                 delta_t_max)
                         sub_gdf.append(gdf)
@@ -221,7 +223,7 @@ def slice_swot(onedsswot, idxstart, idxstop, cpt, delta_hours=6, mode='IW', prod
     return sub_gdf, cpt
 
 
-def get_swot_geoloc(one_swot_l3_file, delta_hours=6, mode='IW', producttype="SLC", cpt=None):
+def get_swot_geoloc(one_swot_l3_file,max_area_size, delta_hours=6, mode='IW', producttype="SLC", cpt=None):
     sub_gdf = []
     app_logger.debug('%s', one_swot_l3_file)
     onedsswot = xr.open_dataset(one_swot_l3_file)
@@ -230,7 +232,8 @@ def get_swot_geoloc(one_swot_l3_file, delta_hours=6, mode='IW', producttype="SLC
     if cpt is None:
         cpt = collections.defaultdict(int)
     for oo in np.arange(0, onedsswot['time'].sizes['num_lines'], segment):
-        tmplistgdf, cpt = slice_swot(onedsswot, idxstart=oo, idxstop=oo + segment, cpt=cpt, delta_hours=delta_hours,
+        tmplistgdf, cpt = slice_swot(onedsswot, idxstart=oo, idxstop=oo + segment, cpt=cpt,
+                                     max_area_size=max_area_size, delta_hours=delta_hours,
                                      mode=mode, producttype=producttype)
         sub_gdf += tmplistgdf
     return sub_gdf, cpt
@@ -368,28 +371,35 @@ def parse_args():
     return args
 
 
-def treat_one_day_wrapper(day2treat,outputdir,mode,disable_tqdm=False):
+def treat_one_day_wrapper(day2treat,outputdir,mode,confpath,disable_tqdm=False):
     """
 
     :param day2treat: datetime.datetime
     :param outputdir: str
     :param mode: str "IW" or "EW"
+    :param confpath: str full path of the config.yml to be used
     :return:
     """
     t0 = time.time()
+    conf = get_conf_content(confpath)
+    # MAX_AREA_SIZE: 200
+    # DELTA_HOURS: 1
+    dswot = conf['SWOT_L3_AVISO_DIR']
+    CACHE_CDSE = conf['CACHE_CDSE']
     lstswotfiles = []
     dd = datetime.datetime.strptime(day2treat, '%Y%m%d')
     app_logger.info('treat day : %s', dd)
     jj = dd.strftime('%j')
     lstswotfiles += glob.glob(os.path.join(dswot, dd.strftime('%Y'), jj, '*nc'))
     app_logger.info('Nb files SWOT found : %i', len(lstswotfiles))
-    app_logger.info('first step: creation of SWOT geodataframes with +/-%i hours shift vs S-1',DELTA_HOURS)
+    app_logger.info('first step: creation of SWOT geodataframes with +/-%i hours shift vs S-1',conf['DELTA_HOURS'])
     SWOTgdfs = []
     cpt = collections.defaultdict(int)
     cpt['nbSWOTfiles'] = len(lstswotfiles)
     for ii in tqdm(range(len(lstswotfiles)),disable=disable_tqdm):
         oneswotfile = lstswotfiles[ii]
-        gdf, cpt = get_swot_geoloc(oneswotfile, delta_hours=DELTA_HOURS, mode=mode, cpt=cpt)
+        gdf, cpt = get_swot_geoloc(oneswotfile, delta_hours=conf['DELTA_HOURS'],max_area_size=conf['MAX_AREA_SIZE'],
+                                   mode=mode, cpt=cpt)
         # all_gdf.append(gdf)
         SWOTgdfs += gdf
         # if ii==5:

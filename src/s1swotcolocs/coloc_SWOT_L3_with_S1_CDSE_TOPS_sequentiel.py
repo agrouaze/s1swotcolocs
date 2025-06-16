@@ -91,6 +91,7 @@ def main():
     parser.add_argument('--outputdir',
                         help='path where the metadata coloc files (.nc) will be saved. [default=computed on the fly from input arguments]',
                         required=True,default=None)
+    parser.add_argument('--confpath', help='path of the config.yml you want to use', required=True)
     args = parser.parse_args()
 
     if args.verbose:
@@ -118,7 +119,9 @@ def main():
             #uu2 = '%s %s %s \n'%(dd.strftime('%Y%m%d'),mode,outd)
             #fid.write(uu2)
 
-            cpt = treat_one_day_wrapper(day2treat=dd.strftime('%Y%m%d'),outputdir=outd,mode=mode,disable_tqdm=True)
+            cpt = treat_one_day_wrapper(day2treat=dd.strftime('%Y%m%d'),
+                        outputdir=outd,mode=mode,disable_tqdm=True,
+                                        confpath=args.confpath)
             logger.info('cpt: %s %s',type(cpt),cpt)
             logger.info('day : %s %s counters:', dd, mode)
             for uu in cpt:

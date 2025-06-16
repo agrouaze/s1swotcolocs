@@ -96,6 +96,7 @@ class TestGetSwotGeoloc(unittest.TestCase):
             one_swot_l3_file=self.SWOT_FILE,
             delta_hours=test_delta_hours,
             mode=test_mode,
+            max_area_size=100,
             producttype=test_producttype,
             cpt=initial_counters
         )
