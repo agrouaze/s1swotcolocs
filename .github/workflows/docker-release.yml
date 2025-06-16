@@ -1,0 +1,37 @@
+name: Docker Release to GHCR
+
+on:
+  release:
+    types: [published] # Triggers when a release is published
+
+jobs:
+  build-and-push-docker-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Needed to push to ghcr.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }} # or your username 'agrouaze'
+          password: ${{ secrets.TOKEN_GITHUB }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/s1swotcolocs # ghcr.io/agrouaze/s1swotcolocs
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
