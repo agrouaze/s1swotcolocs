@@ -388,6 +388,9 @@ def save_netcdf_file_per_swot_piece_orbit(cdse_output, swot_gdf, fpath_out, delt
     )
     colocds.attrs["filepath_swot"] = filepath_swot
     colocds.attrs["delta_time_max_in_hours"] = deltaTmax
+    if os.path.exists(fpath_out):
+        logging.info('remove the existing file')
+        os.remove(fpath_out)
     if not os.path.exists(os.path.dirname(fpath_out)):
         os.makedirs(os.path.dirname(fpath_out),mode=0o775)
     colocds.to_netcdf(fpath_out, engine="h5netcdf")
