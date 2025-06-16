@@ -181,7 +181,7 @@ def slice_swot(
                     subpartswot = fix_polygon(
                         partswot
                     )  # fix antimeridian crossing if needed
-                except ValueError:
+                except AssertionError:
                     cpt["impossible_to_fix_polygon"] += 1
                     continue
                 if isinstance(subpartswot, MultiPolygon):
@@ -219,7 +219,7 @@ def slice_swot(
                 subpartswot = fix_polygon(
                     simplified_polygon, fix_winding=True
                 )  # fix antimeridian crossing if needed
-            except ValueError:
+            except AssertionError:
                 cpt["error_at_fix_antimeridian"] += 1
                 app_logger.error("%s", traceback.format_exc())
                 subpartswot = None
