@@ -6,7 +6,8 @@ import logging
 import argparse
 import os  # <--- NEW: Import the os module
 from datetime import date, timedelta, datetime
-from s1swotcolocs.utils import get_conf_content
+from yaml import CLoader as Loader
+from yaml import load
 
 
 def setup_logging():
@@ -106,7 +107,8 @@ def main():
 
     logging.info("Starting the S1/SWOT collocation wrapper script.")
     logging.info("load the config file from :%s", args.confpath)
-    conf = get_conf_content(args.confpath)
+    stream = open(args.confpath, "r")
+    conf = load(stream, Loader=Loader)
     # --- Configuration ---
     DOCKER_BINARY_PATH = conf["DOCKER_BINARY_PATH"]
     DOCKER_IMAGE = conf["DOCKER_IMAGE"]
