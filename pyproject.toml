@@ -43,6 +43,8 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = ["s1swotcolocs"]
+#[tool.setuptools.packages.find]
+#where = ["src"]  # Tell setuptools to look for packages inside the 'src' directory
 
 [tool.setuptools_scm]
 fallback_version = "999"
