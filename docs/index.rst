@@ -8,7 +8,7 @@ Welcome to s1swotcolocs's documentation!
    readme
    installation
    usage
-   modules
+   api
    contributing
    authors
    history
