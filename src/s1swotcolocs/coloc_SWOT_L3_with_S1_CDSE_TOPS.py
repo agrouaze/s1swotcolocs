@@ -59,7 +59,7 @@ class SuppressCDSODATACLIQuery(logging.Filter):
 def treat_a_clean_piece_of_swot_orbit(swotpiece, points, onedsswot, mode, producttype, delta_t_max):
     """
 
-    :param swotpiece: polygon that is simplified and that do no cross antimeridian
+    :param swotpiece: shapely.geometry.Polygon that is simplified and that do no cross antimeridian
     :param points: 2D matrix with lon and lat from SWOT
     :param onedsswot: dataset xarray SWOT L3
     :return:
@@ -236,9 +236,9 @@ def get_swot_geoloc(one_swot_l3_file, delta_hours=6, mode='IW', producttype="SLC
     return sub_gdf, cpt
 
 
-def do_cdse_query(gdf, mini_ocean=10, cach):
+def do_cdse_query(gdf, mini_ocean=10, cache_dir=None):
     collected_data_norm = cdsodatacli.query.fetch_data(gdf, min_sea_percent=mini_ocean,
-                                                       timedelta_slice=datetime.timedelta(days=4), cache_dir=cach)
+                                                       timedelta_slice=datetime.timedelta(days=4), cache_dir=cache_dir)
     # print(collected_data_norm)
     return collected_data_norm
 
@@ -400,7 +400,7 @@ def treat_one_day_wrapper(day2treat,outputdir,mode,disable_tqdm=False):
     for ii in tqdm(range(len(SWOTgdfs)),disable=disable_tqdm):
         gdf = SWOTgdfs[ii]
         try:
-            res = do_cdse_query(gdf, mini_ocean=10, cach=CACHE_CDSE)
+            res = do_cdse_query(gdf, mini_ocean=10, cache_dir=CACHE_CDSE)
             if res is not None:
                 cpt['sentinel1_product_matching'] += len(res)
         except:

@@ -4,7 +4,7 @@ this script replace the prun (temporarily)
 May 2025
 A Grouazel
 """
-from coloc_SWOT_L3_with_S1_CDSE_TOPS import treat_one_day_wrapper 
+from s1swotcolocs.coloc_SWOT_L3_with_S1_CDSE_TOPS import treat_one_day_wrapper
 import sys
 import datetime
 print(sys.executable)
