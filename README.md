@@ -30,12 +30,13 @@ Python lib to create co-locations between Sentinel-1 IW or EW images and SWOT Ka
 Features
 --------
 
-* TODO
+* Find temporal and spatial co-locations between Sentinel-1 (S1) Level-1/Level-2 products and SWOT Level-3 (L3) SSH data.
+* Process S1 IW (Interferometric Wide swath) and EW (Extra Wide swath) modes.
+* Interface with CDSE (Copernicus Data Space Ecosystem) for S1 data discovery.
+* Generate output defining co-located S1 and SWOT data segments.
+* Configurable time delta for co-location criteria.
+* Utility functions for geospatial operations and data handling relevant to S1 and SWOT.
 
-Credits
--------
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+::code-block::python
+   import s1swotcolocs
