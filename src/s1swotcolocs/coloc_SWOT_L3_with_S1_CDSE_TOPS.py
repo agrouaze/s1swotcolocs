@@ -17,10 +17,13 @@ from shapely.geometry import MultiPoint, MultiPolygon
 from tqdm import tqdm
 import geopandas as gpd
 from scipy import spatial
+import alphashape
 import geodatasets
 import cdsodatacli
 import cdsodatacli.query
+import s1swotcolocs
 from s1swotcolocs.utils import get_conf_content
+from s1swotcolocs.check_lonlat_polygon_extent import check_longitude_smaller_than_latitude_extent
 
 # Ignorer uniquement FixWindingWarning
 warnings.filterwarnings("ignore", category=FixWindingWarning)
@@ -64,7 +67,6 @@ def treat_a_clean_piece_of_swot_orbit(
     """
     # app_logger.info('partswot: %i size %i', iip, len(swotpiece.exterior.xy[0]))
     app_logger.debug("swotpiece : %s", swotpiece)
-    # print('partswot',partswot)
     original_filename = os.path.basename(onedsswot.encoding["source"])
     lonmin = np.amin(swotpiece.exterior.xy[0])
     lonmax = np.amax(swotpiece.exterior.xy[0])
@@ -127,6 +129,7 @@ def slice_swot(
     delta_hours=6,
     mode="IW",
     producttype="SLC",
+    tolerance_simplification=0.1
 ):
     """
     treat the SWOT swath by pieces to avoid too large polygon when computing the convex_hull of the piece
@@ -139,6 +142,7 @@ def slice_swot(
     :param delta_hours: int maximum time window (in hours) to search for S1 product around the SWOT date
     :param mode: str IW or EW
     :param producttype: str SLC or GRD
+    :param tolerance_simplification: float to simplify SWOT swath polygon (used as alphashape alpha)
     :return:
         sub_gdf (list): list of the geodataframes computed on each piece of SWOT orbit
          (we can have several pieces per segment if there is land interrupting the swath)
@@ -146,7 +150,8 @@ def slice_swot(
     sub_gdf = []
 
     delta_t_max = np.timedelta64(delta_hours, "h")
-    swotsub = onedsswot.isel({"num_lines": slice(idxstart, idxstop)})
+    steps_in_swot = 20
+    swotsub = onedsswot.isel({"num_lines": slice(idxstart, idxstop,steps_in_swot)})
     lonswot = swotsub["longitude"].values.ravel()
     lonswot[lonswot > 180] += -360.0
     points = np.column_stack((lonswot, swotsub["latitude"].values.ravel()))
@@ -154,18 +159,20 @@ def slice_swot(
     multi_point = MultiPoint(points)
 
     # Get the convex hull (smallest polygon enclosing all points)
-    polygon = multi_point.convex_hull
+    # polygon = multi_point.convex_hull
+    gdfswot = gpd.GeoDataFrame(geometry=list(multi_point.geoms))
+    alpha_shape_swot = alphashape.alphashape(gdfswot, alpha=tolerance_simplification)
     land_path = geodatasets.get_path("naturalearth.land")
     land = gpd.read_file(land_path)  # .to_crs(epsg=3857)
     # land_union = land.unary_union  # a single MultiPolygon of all land
     land_union = land.union_all()
 
     # --- Step 3: Subtract land from your polygon ---
-    ocean_part = polygon.difference(land_union)
+    ocean_part = alpha_shape_swot.difference(land_union)
     # simplify the swot polygon on ocean
     tolerance = 0.5  # Adjust the tolerance value to control the level of simplification
     # tolerance = 0.1
-    # tolerance = 0.9
+    tolerance = tolerance_simplification
     simplified_polygon = ocean_part.simplify(tolerance)
     # simplified_polygon = simplified_polygon.make_valid()
     simplified_polygon = simplified_polygon.buffer(0)
@@ -187,7 +194,8 @@ def slice_swot(
                 if isinstance(subpartswot, MultiPolygon):
                     cpt["segment_interupted_by_land_and_antimeridian"] += 1
                     for yyp, subsubpartswot in enumerate(subpartswot.geoms):
-                        if subsubpartswot.area < max_area_size:
+                        is_ok_extents = check_longitude_smaller_than_latitude_extent(subsubpartswot)
+                        if subsubpartswot.area < max_area_size and is_ok_extents:
                             gdf = treat_a_clean_piece_of_swot_orbit(
                                 subsubpartswot,
                                 points,
@@ -269,6 +277,7 @@ def get_swot_geoloc(
     mode="IW",
     producttype="SLC",
     cpt=None,
+    tolerance_simplification=0.1
 ):
     sub_gdf = []
     app_logger.debug("%s", one_swot_l3_file)
@@ -287,6 +296,7 @@ def get_swot_geoloc(
             delta_hours=delta_hours,
             mode=mode,
             producttype=producttype,
+            tolerance_simplification=tolerance_simplification
         )
         sub_gdf += tmplistgdf
     return sub_gdf, cpt
@@ -303,7 +313,7 @@ def do_cdse_query(gdf, mini_ocean=10, cache_dir=None):
     return collected_data_norm
 
 
-def save_netcdf_file_per_swot_piece_orbit(cdse_output, swot_gdf, fpath_out, deltaTmax):
+def save_netcdf_file_per_swot_piece_orbit_core(cdse_output, swot_gdf, fpath_out, deltaTmax,cpt):
     """
 
     save the result for one SWOT query matching one or more S1 product(s)
@@ -353,21 +363,22 @@ def save_netcdf_file_per_swot_piece_orbit(cdse_output, swot_gdf, fpath_out, delt
     colocds = xr.Dataset()
     colocds["sar_safe_name"] = xr.DataArray(
         cdse_output["Name"].values,
-        dims="coloc",
+        dims="sar_start_time_slice",
+        coords={"sar_start_time_slice": all_start_SAR},
         attrs={"description": "name of the SAFE Sentinel-1 products colocated"},
     )
     colocds["delta_diff_time"] = xr.DataArray(
         all_delta_times,
-        dims="coloc",
+        dims="sar_start_time_slice",
         attrs={"description": "delta time SWOT - SAR in minutes"},
     )
-    colocds["sar_start_time_slice"] = xr.DataArray(
-        all_start_SAR,
-        dims="coloc",
-        attrs={
-            "description": "SAR product start of slice date",
-        },
-    )
+    # colocds["sar_start_time_slice"] = xr.DataArray(
+    #     all_start_SAR,
+    #     dims="coloc",
+    #     attrs={
+    #         "description": "SAR product start of slice date",
+    #     },
+    # )
     # 'units' : "seconds since 1970-01-01 00:00:00",
     # 'calendar' : "standard",})
     colocds["SWOT_start_time_slice"] = xr.DataArray(
@@ -375,7 +386,7 @@ def save_netcdf_file_per_swot_piece_orbit(cdse_output, swot_gdf, fpath_out, delt
     )
     colocds["sar_safe_name"] = xr.DataArray(
         cdse_output["Name"].values,
-        dims="coloc",
+        dims="sar_start_time_slice",
         attrs={"description": "name of the SAFE Sentinel-1 products colocated"},
     )
     colocds["swot_polygon"] = xr.DataArray(
@@ -383,34 +394,38 @@ def save_netcdf_file_per_swot_piece_orbit(cdse_output, swot_gdf, fpath_out, delt
     )
     colocds["sar_polygon"] = xr.DataArray(
         all_SAR_polygones,
-        dims="coloc",
+        dims="sar_start_time_slice",
         attrs={"description": "polygons of SAR products"},
     )
-    colocds.attrs["filepath_swot"] = filepath_swot
-    colocds.attrs["delta_time_max_in_hours"] = deltaTmax
+    # colocds.attrs["filepath_swot"] = filepath_swot
+    colocds.attrs['s1swotcolocs_python_lib_version'] = s1swotcolocs.__version__
+    colocds.attrs["searching_windows_width_in_hours"] = deltaTmax
     if os.path.exists(fpath_out):
         logging.info('remove the existing file')
         os.remove(fpath_out)
+        cpt['file_replaced'] += 1
+    else:
+        logging.debug('file does not exist -> brand-new file on disk')
+        cpt['new_file'] += 1
     if not os.path.exists(os.path.dirname(fpath_out)):
         os.makedirs(os.path.dirname(fpath_out),mode=0o775)
     colocds.to_netcdf(fpath_out, engine="h5netcdf")
     os.chmod(fpath_out, 0o664)
     app_logger.info("coloc file created : %s", fpath_out)
+    return cpt
 
 
 def save_meta_coloc_output(
-    cddesS1outputs, SWOTgdfs, dir_output, deltaTmax, disable_tqdm=False
+    cddesS1outputs, SWOTgdfs, dir_output, deltaTmax,cpt, disable_tqdm=False
 ):
     """
 
 
     :param cddesS1outputs:
-    :param SWOTgdfs:
-    :param dir_output:
+    :param SWOTgdfs: list of geodataframes
+    :param dir_output: str
     :return:
     """
-    cpt_written = 0
-    cpt_no_coloc = 0
     assert len(cddesS1outputs) == len(
         SWOTgdfs
     )  # there is as much CDSE returns than SWOT gdf
@@ -445,24 +460,25 @@ def save_meta_coloc_output(
                 "coloc_SWOT_L3_Sentinel-1_IW_%s.nc" % swot_formated_date,
             )
             app_logger.info("fpath_out: %s", fpath_out)
-            save_netcdf_file_per_swot_piece_orbit(
+            cpt = save_netcdf_file_per_swot_piece_orbit_core(
                 cdse_output=one_cds_output,
                 swot_gdf=swot_gdf,
                 fpath_out=fpath_out,
                 deltaTmax=deltaTmax,
+                cpt=cpt
             )
-            cpt_written += 1
+            cpt['written'] += 1
         else:
-            cpt_no_coloc += 1
+            cpt['no_coloc'] += 1
     app_logger.info(
-        "number of coloc files written : %i/%i", cpt_written, len(cddesS1outputs)
+        "number of coloc files written : %i/%i", cpt['written'], len(cddesS1outputs)
     )
     app_logger.info(
         "number of SWOT piece of orbit without S1 coloc : %i/%i",
-        cpt_no_coloc,
+        cpt['no_coloc'],
         len(cddesS1outputs),
     )
-    return cpt_written, cpt_no_coloc
+    return cpt
 
 
 def parse_args():
@@ -521,6 +537,7 @@ def treat_one_day_wrapper(day2treat, outputdir, mode, confpath, disable_tqdm=Fal
             max_area_size=conf["MAX_AREA_SIZE"],
             mode=mode,
             cpt=cpt,
+            tolerance_simplification=conf["TOLERANCE_SIMPLIFICATION"],
         )
         # all_gdf.append(gdf)
         SWOTgdfs += gdf
@@ -538,21 +555,21 @@ def treat_one_day_wrapper(day2treat, outputdir, mode, confpath, disable_tqdm=Fal
         except ValueError:
             app_logger.error("problematic gdf: %s", gdf)
             app_logger.error("traceback: %s", traceback.format_exc())
-            raise ValueError
             res = None
             cpt["problematic_gdf"] += 1
+            raise ValueError
+
         cddesS1outputs.append(res)
     app_logger.info("CDSE queries performed.")
     if len(SWOTgdfs) > 0:
-        cpt_written, cpt_no_coloc = save_meta_coloc_output(
+        cpt = save_meta_coloc_output(
             cddesS1outputs,
             SWOTgdfs,
             dir_output=outputdir,
             deltaTmax=conf["DELTA_HOURS"],
+            cpt=cpt,
             disable_tqdm=disable_tqdm,
         )
-        cpt["nc_coloc_written"] += cpt_written
-        cpt["cpt_no_coloc"] += cpt_no_coloc
     elapsed = time.time() - t0
     app_logger.info("end of analysis in %1.1f seconds", elapsed)
     return cpt
@@ -605,9 +622,11 @@ def main():
     #
     #     # Supprime tous les handlers qui pourraient afficher les logs
     #     logger.handlers.clear()
-    treat_one_day_wrapper(
+    cpt = treat_one_day_wrapper(
         day2treat=args.day2treat, outputdir=args.outputdir, mode=args.mode
     )
+    for uu in cpt:
+        logging.info('\ncounters for day %s , key %s = %s\n',args.day2treat,uu,cpt[uu])  
 
 
 if __name__ == "__main__":
