@@ -22,7 +22,8 @@ dependencies = [
     "geopandas",
     "geodatasets",
     "cdsodatacli",
-    "h5netcdf"
+    "h5netcdf",
+    "alphashape"
 ]
 
 dynamic = ["version"]

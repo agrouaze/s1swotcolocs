@@ -16,3 +16,4 @@ dependencies:
     - geodatasets
     - cdsodatacli
     - h5netcdf
+    - alphashape
