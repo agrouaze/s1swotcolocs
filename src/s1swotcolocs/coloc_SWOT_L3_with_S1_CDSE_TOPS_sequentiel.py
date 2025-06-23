@@ -7,7 +7,6 @@ A Grouazel
 import logging
 import os
 import argparse
-import calendar
 from dateutil import rrule
 from s1swotcolocs.coloc_SWOT_L3_with_S1_CDSE_TOPS import treat_one_day_wrapper
 import sys
@@ -106,9 +105,7 @@ def main():
     logger.info("start loops")
     for mode in ["IW", "EW"]:
         logger.info("treat %s", mode)
-        for dd in rrule.rrule(
-            rrule.DAILY, dtstart=args.startdate, until=args.stopdate
-        ):
+        for dd in rrule.rrule(rrule.DAILY, dtstart=args.startdate, until=args.stopdate):
 
             # # example of input line: 20250201 IW /tmp/
             outd = os.path.join(args.outputdir, mode)

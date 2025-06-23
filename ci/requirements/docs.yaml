@@ -1,8 +1,8 @@
 name: s1swotcolocs-docs
 channels:
-  - conda-forge
+    - conda-forge
 dependencies:
-  - python=3.11
-  - sphinx>=4
-  - sphinx_book_theme
-  - ipython
+    - python=3.11
+    - sphinx>=4
+    - sphinx_book_theme
+    - ipython

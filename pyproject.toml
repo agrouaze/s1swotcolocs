@@ -4,26 +4,22 @@ requires-python = ">= 3.9"
 description = "Python lib to create co-locations between Sentinel-1 IW or EW images and SWOT KaRin swath."
 readme.file = "README.md"
 readme.content-type = "text/markdown"
-license = {text = "MIT"}
-keywords = ["SAR", "SWOT", "colocations","sea-state"]
-authors = [
-  {name = "Antoine Grouazel"},
-]
-classifiers = [
-    "Programming Language :: Python :: 3",
-]
+license = { text = "MIT" }
+keywords = ["SAR", "SWOT", "colocations", "sea-state"]
+authors = [{ name = "Antoine Grouazel" }]
+classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
-    "numpy",
-    "pandas",
-    "xarray",
-    "antimeridian",
-    "shapely",
-    "tqdm",
-    "geopandas",
-    "geodatasets",
-    "cdsodatacli",
-    "h5netcdf",
-    "alphashape"
+  "numpy",
+  "pandas",
+  "xarray",
+  "antimeridian",
+  "shapely",
+  "tqdm",
+  "geopandas",
+  "geodatasets",
+  "cdsodatacli",
+  "h5netcdf",
+  "alphashape",
 ]
 
 dynamic = ["version"]
@@ -42,7 +38,7 @@ requires = ["setuptools>=64.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 packages = ["s1swotcolocs"]
 #[tool.setuptools.packages.find]
 #where = ["src"]  # Tell setuptools to look for packages inside the 'src' directory
@@ -90,4 +86,3 @@ known-third-party = ["xarray", "toolz", "construct"]
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
-

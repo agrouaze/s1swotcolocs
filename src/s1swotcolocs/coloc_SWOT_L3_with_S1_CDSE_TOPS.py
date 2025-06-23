@@ -4,7 +4,6 @@ import datetime
 import glob
 import logging
 import os
-import pdb
 import sys
 import time
 import traceback
@@ -24,7 +23,9 @@ import cdsodatacli
 import cdsodatacli.query
 import s1swotcolocs
 from s1swotcolocs.utils import get_conf_content
-from s1swotcolocs.check_lonlat_polygon_extent import check_longitude_smaller_than_latitude_extent
+from s1swotcolocs.check_lonlat_polygon_extent import (
+    check_longitude_smaller_than_latitude_extent,
+)
 
 # Ignorer uniquement FixWindingWarning
 warnings.filterwarnings("ignore", category=FixWindingWarning)
@@ -130,7 +131,7 @@ def slice_swot(
     delta_hours=6,
     mode="IW",
     producttype="SLC",
-    tolerance_simplification=0.1
+    tolerance_simplification=0.1,
 ):
     """
     treat the SWOT swath by pieces to avoid too large polygon when computing the convex_hull of the piece
@@ -152,7 +153,7 @@ def slice_swot(
 
     delta_t_max = np.timedelta64(delta_hours, "h")
     steps_in_swot = 20
-    swotsub = onedsswot.isel({"num_lines": slice(idxstart, idxstop,steps_in_swot)})
+    swotsub = onedsswot.isel({"num_lines": slice(idxstart, idxstop, steps_in_swot)})
     lonswot = swotsub["longitude"].values.ravel()
     lonswot[lonswot > 180] += -360.0
     points = np.column_stack((lonswot, swotsub["latitude"].values.ravel()))
@@ -195,7 +196,9 @@ def slice_swot(
                 if isinstance(subpartswot, MultiPolygon):
                     cpt["segment_interupted_by_land_and_antimeridian"] += 1
                     for yyp, subsubpartswot in enumerate(subpartswot.geoms):
-                        is_ok_extents = check_longitude_smaller_than_latitude_extent(subsubpartswot)
+                        is_ok_extents = check_longitude_smaller_than_latitude_extent(
+                            subsubpartswot
+                        )
                         if subsubpartswot.area < max_area_size and is_ok_extents:
                             gdf = treat_a_clean_piece_of_swot_orbit(
                                 subsubpartswot,
@@ -278,8 +281,8 @@ def get_swot_geoloc(
     mode="IW",
     producttype="SLC",
     cpt=None,
-    tolerance_simplification=0.1
-)->(list,collections.defaultdict):
+    tolerance_simplification=0.1,
+) -> (list, collections.defaultdict):
     """
 
     :param one_swot_l3_file: str
@@ -310,7 +313,7 @@ def get_swot_geoloc(
             delta_hours=delta_hours,
             mode=mode,
             producttype=producttype,
-            tolerance_simplification=tolerance_simplification
+            tolerance_simplification=tolerance_simplification,
         )
         allgdfs_swot += tmplistgdf
     return allgdfs_swot, cpt
@@ -327,7 +330,9 @@ def do_cdse_query(gdf, mini_ocean=10, cache_dir=None):
     return collected_data_norm
 
 
-def save_netcdf_file_per_swot_piece_orbit_core(cdse_output, swot_gdf, fpath_out, delta_t_max,cpt):
+def save_netcdf_file_per_swot_piece_orbit_core(
+    cdse_output, swot_gdf, fpath_out, delta_t_max, cpt
+):
     """
 
     save the result for one SWOT query matching one or more S1 product(s)
@@ -384,10 +389,11 @@ def save_netcdf_file_per_swot_piece_orbit_core(cdse_output, swot_gdf, fpath_out,
         coords={"sar_start_time_slice": all_start_SAR},
         attrs={"description": "name of the SAFE Sentinel-1 products colocated"},
     )
-    colocds['filepath_swot'] = xr.DataArray(all_SWOT_fpath,
-                                            dims="sar_start_time_slice",
-                                            attrs={"description": "file paths of SWOT products colocated"},
-                                            )
+    colocds["filepath_swot"] = xr.DataArray(
+        all_SWOT_fpath,
+        dims="sar_start_time_slice",
+        attrs={"description": "file paths of SWOT products colocated"},
+    )
     colocds["delta_diff_time"] = xr.DataArray(
         all_delta_times,
         dims="sar_start_time_slice",
@@ -419,17 +425,17 @@ def save_netcdf_file_per_swot_piece_orbit_core(cdse_output, swot_gdf, fpath_out,
         attrs={"description": "polygons of SAR products"},
     )
     # colocds.attrs["filepath_swot"] = filepath_swot
-    colocds.attrs['s1swotcolocs_python_lib_version'] = s1swotcolocs.__version__
+    colocds.attrs["s1swotcolocs_python_lib_version"] = s1swotcolocs.__version__
     colocds.attrs["searching_windows_width_in_hours"] = delta_t_max
     if os.path.exists(fpath_out):
-        logging.info('remove the existing file')
+        logging.info("remove the existing file")
         os.remove(fpath_out)
-        cpt['file_replaced'] += 1
+        cpt["file_replaced"] += 1
     else:
-        logging.debug('file does not exist -> brand-new file on disk')
-        cpt['new_file'] += 1
+        logging.debug("file does not exist -> brand-new file on disk")
+        cpt["new_file"] += 1
     if not os.path.exists(os.path.dirname(fpath_out)):
-        os.makedirs(os.path.dirname(fpath_out),mode=0o775)
+        os.makedirs(os.path.dirname(fpath_out), mode=0o775)
     colocds.to_netcdf(fpath_out, engine="h5netcdf")
     os.chmod(fpath_out, 0o664)
     app_logger.info("coloc file created : %s", fpath_out)
@@ -437,7 +443,7 @@ def save_netcdf_file_per_swot_piece_orbit_core(cdse_output, swot_gdf, fpath_out,
 
 
 def save_meta_coloc_output(
-    cddesS1outputs, SWOTgdfs, dir_output, delta_t_max,cpt, disable_tqdm=False
+    cddesS1outputs, SWOTgdfs, dir_output, delta_t_max, cpt, disable_tqdm=False
 ):
     """
 
@@ -489,17 +495,17 @@ def save_meta_coloc_output(
                 swot_gdf=swot_gdf,
                 fpath_out=fpath_out,
                 delta_t_max=delta_t_max,
-                cpt=cpt
+                cpt=cpt,
             )
-            cpt['written'] += 1
+            cpt["written"] += 1
         else:
-            cpt['no_coloc'] += 1
+            cpt["no_coloc"] += 1
     app_logger.info(
-        "number of coloc files written : %i/%i", cpt['written'], len(cddesS1outputs)
+        "number of coloc files written : %i/%i", cpt["written"], len(cddesS1outputs)
     )
     app_logger.info(
         "number of SWOT piece of orbit without S1 coloc : %i/%i",
-        cpt['no_coloc'],
+        cpt["no_coloc"],
         len(cddesS1outputs),
     )
     return cpt
@@ -650,7 +656,9 @@ def main():
         day2treat=args.day2treat, outputdir=args.outputdir, mode=args.mode
     )
     for uu in cpt:
-        logging.info('\ncounters for day %s , key %s = %s\n',args.day2treat,uu,cpt[uu])
+        logging.info(
+            "\ncounters for day %s , key %s = %s\n", args.day2treat, uu, cpt[uu]
+        )
 
 
 if __name__ == "__main__":

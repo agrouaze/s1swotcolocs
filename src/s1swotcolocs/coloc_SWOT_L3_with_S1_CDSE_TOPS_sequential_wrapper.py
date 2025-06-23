@@ -95,12 +95,18 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "--startdate", type=str, default=None,required=False,
-        help="The start date in YYYYMMDD format [optional]."
+        "--startdate",
+        type=str,
+        default=None,
+        required=False,
+        help="The start date in YYYYMMDD format [optional].",
     )
     parser.add_argument(
-        "--stopdate", type=str, default=None,required=False,
-        help="The stop date in YYYYMMDD format [optional]."
+        "--stopdate",
+        type=str,
+        default=None,
+        required=False,
+        help="The stop date in YYYYMMDD format [optional].",
     )
     parser.add_argument(
         "--confpath", help="path of the config.yml you want to use", required=True
