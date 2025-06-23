@@ -49,24 +49,6 @@ def setup_logging(log_level=logging.INFO):
     return logger
 
 
-def end_of_month(yyyymm_str):
-    """
-    return a date a the very begining of the next month
-    """
-    # Parse the input string
-    year = int(yyyymm_str[:4])
-    month = int(yyyymm_str[4:6])
-
-    # Get the last day of the month
-    last_day = calendar.monthrange(year, month)[1]
-
-    # Return datetime object at the end of the day
-    # return
-    endofmonth = datetime.datetime(year, month, last_day, 23, 59, 59)
-    beginingofnextmonth = endofmonth + datetime.timedelta(hours=1)
-    return beginingofnextmonth
-
-
 def parse_yyyymmdd(s):
     # logging.debug('s = %s',s)
     try:
@@ -87,13 +69,13 @@ def main():
     parser = argparse.ArgumentParser(description="start prun")
     parser.add_argument("--verbose", action="store_true", default=False)
     parser.add_argument(
-        "--startmonth",
+        "--startdate",
         help="YYYYMMDD start SWOT L3 Ifremer collection starts 20230328 ",
         required=True,
         type=parse_yyyymmdd,
     )
     parser.add_argument(
-        "--stopmonth", help="YYYYMMDD stop", required=True, type=parse_yyyymmdd
+        "--stopdate", help="YYYYMMDD stop", required=True, type=parse_yyyymmdd
     )
     parser.add_argument(
         "--outputdir",
@@ -125,7 +107,7 @@ def main():
     for mode in ["IW", "EW"]:
         logger.info("treat %s", mode)
         for dd in rrule.rrule(
-            rrule.DAILY, dtstart=args.startmonth, until=args.stopmonth
+            rrule.DAILY, dtstart=args.startdate, until=args.stopdate
         ):
 
             # # example of input line: 20250201 IW /tmp/
