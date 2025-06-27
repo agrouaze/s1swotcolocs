@@ -31,6 +31,22 @@ Colocation Logic
     :undoc-members:
     :show-inheritance:
 
+Sea State Colocation
+--------------------
+
+.. automodule:: s1swotcolocs.seastate_colocs_s1_swot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Visualization and Dashboard
+---------------------------
+
+.. automodule:: s1swotcolocs.illustrate_coloc_swh_file
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 ..
     Add other submodules here as your project grows, for example:
     .. automodule:: s1swotcolocs.another_module

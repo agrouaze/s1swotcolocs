@@ -10,6 +10,7 @@ authors = [{ name = "Antoine Grouazel" }]
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
   "numpy",
+    "scipy",
   "pandas",
   "xarray",
   "antimeridian",
@@ -20,6 +21,8 @@ dependencies = [
   "cdsodatacli",
   "h5netcdf",
   "alphashape",
+  "geoviews",
+    "hvplot",
 ]
 
 dynamic = ["version"]

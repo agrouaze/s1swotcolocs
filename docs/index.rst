@@ -8,6 +8,7 @@ Welcome to s1swotcolocs's documentation!
    readme
    installation
    usage
+   notebooks
    api
    contributing
    authors
