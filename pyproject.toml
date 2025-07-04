@@ -10,7 +10,7 @@ authors = [{ name = "Antoine Grouazel" }]
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
   "numpy",
-    "scipy",
+  "scipy",
   "pandas",
   "xarray",
   "antimeridian",
@@ -22,7 +22,8 @@ dependencies = [
   "h5netcdf",
   "alphashape",
   "geoviews",
-    "hvplot",
+  "hvplot",
+  "s1ifr @ git+https://gitlab.ifremer.fr/lops-wave/s1ifr@main",
 ]
 
 dynamic = ["version"]
