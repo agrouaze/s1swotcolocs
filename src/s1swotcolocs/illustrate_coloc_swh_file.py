@@ -1,10 +1,7 @@
 import panel as pn
 import numpy as np
-import geopandas as gpd
 import hvplot.pandas  # noqa
 import holoviews as hv
-import xarray as xr
-from shapely.geometry import Polygon
 from scipy.stats import pearsonr
 from scipy.stats import gaussian_kde  # <-- Add this import at the top of your file
 import os

@@ -57,7 +57,10 @@ def mock_config():
 def sample_metacoloc_ds(tmp_path):
     """Creates a sample meta-colocation xarray.Dataset for testing."""
     # Create a dummy NetCDF file because some functions expect a path
-    filepath = tmp_path / "seastate_coloc_S1A_IW_SLC__1SDV_20240729T172527_20240729T172557_054978_06B28F_CEF7-iw3_SWOT_L3_Sentinel-1_IW_20240729T172147.nc"
+    filepath = (
+        tmp_path
+        / "seastate_coloc_S1A_IW_SLC__1SDV_20240729T172527_20240729T172557_054978_06B28F_CEF7-iw3_SWOT_L3_Sentinel-1_IW_20240729T172147.nc"
+    )
     ds = xr.Dataset(
         {
             "sar_safe_name": (("coloc",), ["S1A_IW_SLC__1SDV_..."]),
@@ -146,7 +149,8 @@ def test_get_L2WAV_S1_IW_path():
     )
 
     with patch(
-        "s1ifr.paths_safe_product_family.get_products_family", return_value=mock_dataframe
+        "s1ifr.paths_safe_product_family.get_products_family",
+        return_value=mock_dataframe,
     ) as mock_get_family:
         result_path = s1_coloc.get_L2WAV_S1_IW_path(mock_l1_path)
 

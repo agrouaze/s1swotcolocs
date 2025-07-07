@@ -1,6 +1,6 @@
-############
+#############
 API Reference
-############
+#############
 
 This page provides an auto-generated summary of the ``s1swotcolocs`` API.
 

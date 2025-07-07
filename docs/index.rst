@@ -1,5 +1,5 @@
 Welcome to s1swotcolocs's documentation!
-======================================
+========================================
 
 .. toctree::
    :maxdepth: 2
@@ -8,11 +8,12 @@ Welcome to s1swotcolocs's documentation!
    readme
    installation
    usage
-   notebooks
+   notebooks/illustration_seastate_coloc
    api
    contributing
    authors
    history
+
 
 Indices and tables
 ==================
