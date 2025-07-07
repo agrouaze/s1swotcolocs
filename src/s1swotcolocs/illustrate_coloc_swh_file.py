@@ -8,6 +8,7 @@ from shapely.geometry import Polygon
 from scipy.stats import pearsonr
 from scipy.stats import gaussian_kde  # <-- Add this import at the top of your file
 import os
+from s1swotcolocs.illustrate_coloc_swh_file_pyplot import create_combined_gdf
 from shapely import wkt
 import geoviews as gv
 
@@ -17,43 +18,43 @@ hv.extension("bokeh")
 pn.extension()
 
 
-# --- 1. Data Loading and Helper Functions ---
-def create_combined_gdf(fseastatecoloc):
-    """
-    Reads a NetCDF file and creates a single GeoDataFrame containing polygon geometries
-    and all relevant data (SAR SWH, SWOT SWH) for linking.
-    """
-    # This function is correct and remains unchanged.
-    ds_l2c = xr.open_dataset(fseastatecoloc)
-    corner_lon, corner_lat = ds_l2c["corner_longitude"], ds_l2c["corner_latitude"]
-    ordered = [0, 1, 3, 2]
-    records = []
-    for i in range(ds_l2c.dims["tile_line"]):
-        for j in range(ds_l2c.dims["tile_sample"]):
-            lon_corners = corner_lon.isel(tile_line=i, tile_sample=j).values.ravel()[
-                ordered
-            ]
-            lat_corners = corner_lat.isel(tile_line=i, tile_sample=j).values.ravel()[
-                ordered
-            ]
-            poly = Polygon(list(zip(lon_corners, lat_corners)))
-            records.append(
-                {
-                    "geometry": poly,
-                    "hs_sar": ds_l2c["hs_most_likely"]
-                    .isel(tile_line=i, tile_sample=j)
-                    .item(),
-                    "swh_swot": ds_l2c["swh_karin_mean"]
-                    .isel(tile_line=i, tile_sample=j)
-                    .item(),
-                    "hs_conf": ds_l2c["hs_conf"]
-                    .isel(tile_line=i, tile_sample=j)
-                    .item(),
-                }
-            )
-    combined_gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
-    mask = np.isfinite(combined_gdf["swh_swot"]) & np.isfinite(combined_gdf["hs_sar"])
-    return combined_gdf[mask].reset_index(drop=True), ds_l2c
+# # --- 1. Data Loading and Helper Functions ---
+# def create_combined_gdf(fseastatecoloc):
+#     """
+#     Reads a NetCDF file and creates a single GeoDataFrame containing polygon geometries
+#     and all relevant data (SAR SWH, SWOT SWH) for linking.
+#     """
+#     # This function is correct and remains unchanged.
+#     ds_l2c = xr.open_dataset(fseastatecoloc)
+#     corner_lon, corner_lat = ds_l2c["corner_longitude"], ds_l2c["corner_latitude"]
+#     ordered = [0, 1, 3, 2]
+#     records = []
+#     for i in range(ds_l2c.dims["tile_line"]):
+#         for j in range(ds_l2c.dims["tile_sample"]):
+#             lon_corners = corner_lon.isel(tile_line=i, tile_sample=j).values.ravel()[
+#                 ordered
+#             ]
+#             lat_corners = corner_lat.isel(tile_line=i, tile_sample=j).values.ravel()[
+#                 ordered
+#             ]
+#             poly = Polygon(list(zip(lon_corners, lat_corners)))
+#             records.append(
+#                 {
+#                     "geometry": poly,
+#                     "hs_sar": ds_l2c["hs_most_likely"]
+#                     .isel(tile_line=i, tile_sample=j)
+#                     .item(),
+#                     "swh_swot": ds_l2c["swh_karin_mean"]
+#                     .isel(tile_line=i, tile_sample=j)
+#                     .item(),
+#                     "hs_conf": ds_l2c["hs_conf"]
+#                     .isel(tile_line=i, tile_sample=j)
+#                     .item(),
+#                 }
+#             )
+#     combined_gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
+#     mask = np.isfinite(combined_gdf["swh_swot"]) & np.isfinite(combined_gdf["hs_sar"])
+#     return combined_gdf[mask].reset_index(drop=True), ds_l2c
 
 
 def calculate_statistics(gdf, x_col="swh_swot", y_col="hs_sar"):
