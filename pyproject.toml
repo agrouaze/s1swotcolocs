@@ -4,26 +4,26 @@ requires-python = ">= 3.9"
 description = "Python lib to create co-locations between Sentinel-1 IW or EW images and SWOT KaRin swath."
 readme.file = "README.md"
 readme.content-type = "text/markdown"
-license = {text = "MIT"}
-keywords = ["SAR", "SWOT", "colocations","sea-state"]
-authors = [
-  {name = "Antoine Grouazel"},
-]
-classifiers = [
-    "Programming Language :: Python :: 3",
-]
+license = { text = "MIT" }
+keywords = ["SAR", "SWOT", "colocations", "sea-state"]
+authors = [{ name = "Antoine Grouazel" }]
+classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
-    "numpy",
-    "pandas",
-    "xarray",
-    "antimeridian",
-    "shapely",
-    "tqdm",
-    "geopandas",
-    "geodatasets",
-    "cdsodatacli",
-    "h5netcdf",
-    "alphashape"
+  "numpy",
+  "scipy",
+  "pandas",
+  "xarray",
+  "antimeridian",
+  "shapely",
+  "tqdm",
+  "geopandas",
+  "geodatasets",
+  "cdsodatacli",
+  "h5netcdf",
+  "alphashape",
+  "geoviews",
+  "hvplot",
+  "s1ifr @ git+https://gitlab.ifremer.fr/lops-wave/s1ifr@main",
 ]
 
 dynamic = ["version"]
@@ -42,7 +42,7 @@ requires = ["setuptools>=64.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 packages = ["s1swotcolocs"]
 #[tool.setuptools.packages.find]
 #where = ["src"]  # Tell setuptools to look for packages inside the 'src' directory
@@ -60,6 +60,7 @@ known_first_party = "s1swotcolocs"
 [project.scripts]
 coloc_SWOT_L3_with_S1_CDSE_TOPS_sequential_wrapper = "s1swotcolocs.coloc_SWOT_L3_with_S1_CDSE_TOPS_sequential_wrapper:main"
 coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel = "s1swotcolocs.coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel:main"
+coloc_seastate_SWOT_S1 = "s1swotcolocs.seastate_colocs_s1_swot:main"
 
 [tool.ruff.lint]
 ignore = [
@@ -89,4 +90,3 @@ known-third-party = ["xarray", "toolz", "construct"]
 [tool.ruff.lint.flake8-tidy-imports]
 # Disallow all relative imports.
 ban-relative-imports = "all"
-

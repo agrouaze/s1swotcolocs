@@ -1,6 +1,6 @@
-############
+#############
 API Reference
-############
+#############
 
 This page provides an auto-generated summary of the ``s1swotcolocs`` API.
 
@@ -27,6 +27,22 @@ Colocation Logic
 ----------------
 
 .. automodule:: s1swotcolocs.coloc_SWOT_L3_with_S1_CDSE_TOPS
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Sea State Colocation
+--------------------
+
+.. automodule:: s1swotcolocs.seastate_colocs_s1_swot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Visualization and Dashboard
+---------------------------
+
+.. automodule:: s1swotcolocs.illustrate_coloc_swh_file
     :members:
     :undoc-members:
     :show-inheritance:

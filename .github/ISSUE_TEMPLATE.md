@@ -1,6 +1,6 @@
-* s1swotcolocs version:
-* Python version:
-* Operating System:
+-   s1swotcolocs version:
+-   Python version:
+-   Operating System:
 
 ### Description
 

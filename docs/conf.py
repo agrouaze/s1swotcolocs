@@ -19,7 +19,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+
+sys.path.insert(0, os.path.abspath(".."))
 
 import s1swotcolocs
 
@@ -31,22 +32,32 @@ import s1swotcolocs
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']
+# extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autosectionlabel",
+    "sphinx_rtd_theme",
+    "nbsphinx",
+    "jupyter_sphinx",
+    "sphinx.ext.mathjax",
+    # 'sphinxcontrib.bibtex'
+]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 's1swotcolocs'
+project = "s1swotcolocs"
 copyright = "2025, Antoine Grouazel"
 author = "Antoine Grouazel"
 
@@ -64,15 +75,15 @@ release = s1swotcolocs.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -83,7 +94,13 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+
+html_style = "css/s1swotcolocs.css"
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
@@ -94,13 +111,41 @@ html_theme = 'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = False
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_type_aliases = None
+
+nbsphinx_allow_errors = False
+
+nbsphinx_execute = "always"
+
+nbsphinx_timeout = 300
+
+nbsphinx_prolog = """
+Download this notebook from github_.
+
+.. _github: https://github.com/umr-lops/xsar_slc/tree/main/docs/{{ env.doc2path(env.docname, base=False) }}
+
+----
+"""
 
 
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 's1swotcolocsdoc'
+htmlhelp_basename = "s1swotcolocsdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -109,15 +154,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -127,9 +169,13 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 's1swotcolocs.tex',
-     's1swotcolocs Documentation',
-     'Antoine Grouazel', 'manual'),
+    (
+        master_doc,
+        "s1swotcolocs.tex",
+        "s1swotcolocs Documentation",
+        "Antoine Grouazel",
+        "manual",
+    ),
 ]
 
 
@@ -137,11 +183,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 's1swotcolocs',
-     's1swotcolocs Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "s1swotcolocs", "s1swotcolocs Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------
@@ -150,13 +192,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 's1swotcolocs',
-     's1swotcolocs Documentation',
-     author,
-     's1swotcolocs',
-     'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "s1swotcolocs",
+        "s1swotcolocs Documentation",
+        author,
+        "s1swotcolocs",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
-
-
-
