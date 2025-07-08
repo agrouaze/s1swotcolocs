@@ -19,6 +19,9 @@ from shapely import wkt
 from slcl1butils.utils import xndindex
 from s1ifr import paths_safe_product_family
 from s1swotcolocs.utils import get_conf_content
+from s1swotcolocs.pickup_best_swot_file import (
+    check_if_latest_version
+)
 
 DEFAULT_IFREMER_S1_VERSION_L1B = ["A17", "A18", "A21", "A23", "A16", "A15"]
 DEFAULT_SWOT_VARIABLES = [
@@ -86,11 +89,12 @@ def get_L2WAV_S1_IW_path(fullpath_s1_iw_slc, version_L1B=None):
     return path_l2wav_sar
 
 
-def read_swot_windwave_l2_file(metacolocds, confpath) -> (xr.Dataset, str):
+def read_swot_windwave_l2_file(metacolocds, confpath,cpt=None) -> (xr.Dataset, str):
     """
 
     :param metacolocds: xr.Dataset
     :param confpath: str
+    :param cpt: collections.defaultdict
     :return:
         dsswotl2: xr.Dataset or None SWOT Level-2 WindWave AVISO product
     """
@@ -122,8 +126,14 @@ def read_swot_windwave_l2_file(metacolocds, confpath) -> (xr.Dataset, str):
         lst_nc = glob.glob(pattern_l2)
         if len(lst_nc) > 0:
             pathswotl2final = lst_nc[0]
+            is_the_latest_version, true_latest_file = check_if_latest_version(file_to_check=pathswotl2final, all_available_files=lst_nc)
+            if true_latest_file is not None:
+                cpt['swot_file_change_for_latest'] += 1
+                pathswotl2final = true_latest_file
+            else:
+                cpt['swot_file_direct_pickup_latest'] += 1
             dsswotl2 = xr.open_dataset(pathswotl2final).load()
-    return dsswotl2, pathswotl2final
+    return dsswotl2, pathswotl2final, cpt
 
 
 def create_empty_coloc_res(indexes_sar_grid) -> xr.Dataset:
@@ -369,8 +379,8 @@ def associate_sar_and_swot_seastate_params(
     for iw_slc_safe in fullpath_iw_slc_safes:
         cpt["total_safe_SAR_tested"] += 1
         app_logger.info("treat : %s", iw_slc_safe)
-        dsswotl2, pathswotl2final = read_swot_windwave_l2_file(
-            metacolocds, confpath=confpath
+        dsswotl2, pathswotl2final, cpt = read_swot_windwave_l2_file(
+            metacolocds, confpath=confpath,cpt=cpt
         )
         if dsswotl2 is not None:
             path_l2wav_sar_safe = get_L2WAV_S1_IW_path(
