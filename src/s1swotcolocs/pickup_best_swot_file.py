@@ -15,7 +15,7 @@ def _get_acquisition_id(filename: str) -> Optional[str]:
     Returns:
         The acquisition ID string (e.g., "018_555") or None if not found.
     """
-    match = re.search(r'_(\d{3}_\d{3})_', filename)
+    match = re.search(r"_(\d{3}_\d{3})_", filename)
     if match:
         return match.group(1)
     return None
@@ -43,12 +43,12 @@ def _get_crid_sort_key(filename: str) -> tuple:
     # (?:_(\d+))?   -> Optionally captures the file version number, e.g., "01"
     # The ?: makes the group non-capturing, but the inner (\d+) is capturing.
     # The final ? makes the whole group optional.
-    version_pattern = r'(P[IG][A-Z]\d)(?:_(\d+))?'
+    version_pattern = r"(P[IG][A-Z]\d)(?:_(\d+))?"
     match = re.search(version_pattern, filename)
 
     if not match:
         # Return a key that will be sorted first (lowest priority)
-        return (-1, '', -1, -1)
+        return (-1, "", -1, -1)
 
     crid = match.group(1)  # e.g., "PIC0"
     file_version_str = match.group(2)  # e.g., "01" or None if not present
@@ -59,7 +59,7 @@ def _get_crid_sort_key(filename: str) -> tuple:
     alg_number = int(crid[3])
 
     # 1. Convert processing type to a number for comparison (G=1, I=0)
-    processing_val = 1 if processing_type == 'G' else 0
+    processing_val = 1 if processing_type == "G" else 0
 
     # 4. Convert file version to an int, defaulting to 0 if not present
     file_version_num = int(file_version_str) if file_version_str else 0
@@ -78,8 +78,7 @@ def select_latest_version(filenames: List[str]) -> Optional[str]:
 
 
 def check_if_latest_version(
-    file_to_check: str,
-    all_available_files: List[str]
+    file_to_check: str, all_available_files: List[str]
 ) -> Tuple[bool, Optional[str]]:
     """Validates if a given file is the definitive latest version for its acquisition.
 
@@ -116,7 +115,7 @@ def check_if_latest_version(
     Example:
         >>> all_files = [
         ...     "SWOT_L2_LR_..._018_555_..._PIC0_01.nc",
-        ...     "SWOT_L2_LR_..._018_555_..._PGA0_01.nc"  # The true latest
+        ...     "SWOT_L2_LR_..._018_555_..._PGA0_01.nc",  # The true latest
         ... ]
         >>> old_file = "SWOT_L2_LR_..._018_555_..._PIC0_01.nc"
         >>> is_latest, actual_latest = check_if_latest_version(old_file, all_files)

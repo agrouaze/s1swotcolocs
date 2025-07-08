@@ -5,7 +5,7 @@ from s1swotcolocs.pickup_best_swot_file import (
     _get_acquisition_id,
     _get_crid_sort_key,
     select_latest_version,
-    check_if_latest_version
+    check_if_latest_version,
 )
 
 
@@ -20,47 +20,31 @@ class TestSwotVersioning(unittest.TestCase):
             "SWOT_L2_LR_SSH_018_555_..._PIC0_01.nc",  # Newer letter
             "SWOT_L2_LR_SSH_018_555_..._PIC0_02.nc",  # Newer file version
             "SWOT_L2_LR_SSH_018_555_..._PGA0_01.nc",  # THE LATEST for this acquisition ('G')
-
             # Acquisition 020_111: Only has 'I' versions
             "SWOT_L2_LR_SSH_020_111_..._PIA1_01.nc",
             "SWOT_L2_LR_SSH_020_111_..._PIA1_02.nc",  # THE LATEST for this acquisition
-
             # File without a file version number (should default to 0)
             "SWOT_L2_LR_SSH_020_111_..._PIA0.nc",
-
             # Invalid or malformed filenames
             "invalid_filename_without_version_info.nc",
-            "SWOT_L2_LR_SSH_malformed_id_..._PIC0_01.nc"
+            "SWOT_L2_LR_SSH_malformed_id_..._PIC0_01.nc",
         ]
 
     def test_get_crid_sort_key(self):
         """Test the CRID to sort key conversion with file version."""
         # Standard case with file version
-        self.assertEqual(
-            _get_crid_sort_key("..._PIC0_01.nc"),
-            (0, 'C', 0, 1)
-        )
+        self.assertEqual(_get_crid_sort_key("..._PIC0_01.nc"), (0, "C", 0, 1))
         # 'G' processing type
-        self.assertEqual(
-            _get_crid_sort_key("..._PGA0_10.nc"),
-            (1, 'A', 0, 10)
-        )
+        self.assertEqual(_get_crid_sort_key("..._PGA0_10.nc"), (1, "A", 0, 10))
         # Case without a file version, should default to 0
-        self.assertEqual(
-            _get_crid_sort_key("..._PIB2.nc"),
-            (0, 'B', 2, 0)
-        )
+        self.assertEqual(_get_crid_sort_key("..._PIB2.nc"), (0, "B", 2, 0))
         # No CRID found should return the lowest priority key
-        self.assertEqual(
-            _get_crid_sort_key("no_crid_here.nc"),
-            (-1, '', -1, -1)
-        )
+        self.assertEqual(_get_crid_sort_key("no_crid_here.nc"), (-1, "", -1, -1))
 
     def test_get_acquisition_id(self):
         """Test the extraction of the acquisition ID."""
         self.assertEqual(
-            _get_acquisition_id("SWOT_L2_LR_SSH_018_555_..._PIC0_01.nc"),
-            "018_555"
+            _get_acquisition_id("SWOT_L2_LR_SSH_018_555_..._PIC0_01.nc"), "018_555"
         )
         self.assertIsNone(_get_acquisition_id("some_other_file.nc"))
 
@@ -117,5 +101,5 @@ class TestSwotVersioning(unittest.TestCase):
         self.assertIsNone(real_latest)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)
