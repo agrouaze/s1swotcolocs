@@ -15,8 +15,8 @@ import alphashape
 import geopandas as gpd
 from shapely.geometry import MultiPoint
 import datetime
+from itertools import repeat
 from shapely import wkt
-from slcl1butils.utils import xndindex
 from s1ifr import paths_safe_product_family
 from s1swotcolocs.utils import get_conf_content
 from s1swotcolocs.pickup_best_swot_file import check_if_latest_version
@@ -31,6 +31,22 @@ DEFAULT_SWOT_VARIABLES = [
 app_logger = logging.getLogger(__file__)
 console_handler_app = logging.StreamHandler(sys.stdout)
 
+
+def xndindex(sizes):
+    """
+    xarray equivalent of np.ndindex iterator with defined dimension names
+
+    Args:
+        sizes (dict): dict of form {dimension_name (str): size(int)}
+    Return:
+        iterator over dict
+    """
+    
+
+    for d, k in zip(
+        repeat(tuple(sizes.keys())), zip(np.ndindex(tuple(sizes.values())))
+    ):
+        yield {k: l for k, l in zip(d, k[0])}
 
 def get_original_sar_filepath_from_metacoloc(
     metacolocds, cpt, pola_selected="SDV"
