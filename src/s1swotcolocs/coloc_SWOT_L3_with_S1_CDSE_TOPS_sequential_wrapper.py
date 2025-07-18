@@ -123,7 +123,7 @@ def main():
     HOST_DATAWORK = conf["HOST_DATAWORK"]
     HOST_SOURCES_DIR = conf["HOST_SOURCES_DIR"]
     HOST_SOURCES_DATA = conf["HOST_SOURCES_DATA"]
-    HOST_OUTPUT_DIR = conf["HOST_OUTPUT_DIR"]
+    HOST_OUTPUT_DIR = conf["HOST_META_COLOC_OUTPUT_DIR"]
     CONTAINER_SCRIPT_PATH = "coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel"
     # --- End of Configuration ---
     if args.startdate and args.stopdate:
