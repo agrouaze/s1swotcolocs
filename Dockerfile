@@ -1,50 +1,61 @@
-# ---- Base Stage ----
-# This stage installs micromamba
+# ---- Stage 1: Micromamba Base ----
+# This stage just installs micromamba for reuse.
 FROM ubuntu:22.04 as micromamba-base
 
 ARG MAMBA_VERSION=1.5.6
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 
-# Install micromamba into /usr/local/bin/
-# Using a separate stage allows for better caching
 RUN apt-get update && apt-get install -y curl bzip2 ca-certificates && \
     curl -L https://micromamba.snakepit.net/api/micromamba/linux-64/${MAMBA_VERSION} | \
     tar -xvj --strip-components=1 -C /usr/local/bin/ bin/micromamba && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ---- Final Stage ----
-# This is the image we will actually use
+
+# ---- Stage 2: The Builder ----
+# This stage will use the secret to build the complete conda environment.
+# This stage will be discarded and is not part of the final image.
+FROM micromamba-base as builder
+
+# --- THIS IS THE CRUCIAL STEP ---
+# Declare the build argument that will receive the secret.
+ARG GITLAB_CREDS
+
+# Install system dependencies needed for building packages (like git)
+RUN apt-get update && apt-get install -y git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy your environment file
+COPY environment.yml /tmp/environment.yml
+
+# Create the base environment from your file
+RUN micromamba create -y -n myenv -f /tmp/environment.yml && \
+    micromamba clean -a -y
+
+# Now, activate the environment and install the private package using the secret.
+# The `micromamba run` command executes the command within the specified environment.
+# This is where the secret is actually used.
+RUN micromamba run -n myenv pip install git+https://${GITLAB_CREDS}@gitlab.ifremer.fr/lops-wave/s1ifr.git
+
+
+# ---- Stage 3: The Final Image ----
+# This is the image you will actually use. It is clean and never saw the secret.
 FROM ubuntu:22.04
 
-# Copy micromamba from the base stage
-COPY --from=micromamba-base /usr/local/bin/micromamba /usr/local/bin/micromamba
-
-# Set up environment variables
+# Set up environment variables for the final image
 ENV MAMBA_ROOT_PREFIX=/opt/conda \
     PATH=/opt/conda/bin:$PATH \
     ENV_NAME=myenv
 
-# Install system dependencies needed by your Python packages
+# Install only the RUNTIME system dependencies. No need for git, curl, etc.
 RUN apt-get update && apt-get install -y \
-    libglib2.0-0 libxext6 libsm6 libxrender1 git && \
+    libglib2.0-0 libxext6 libsm6 libxrender1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy environment file and create the conda environment
-COPY environment.yml /tmp/environment.yml
-RUN micromamba create -y -n $ENV_NAME -f /tmp/environment.yml && \
-    micromamba clean -a -y && \
-    rm /tmp/environment.yml
+# --- THE MAGIC STEP ---
+# Copy the entire conda environment, with s1ifr already installed, from the builder stage.
+COPY --from=builder /opt/conda /opt/conda
 
-# This is the modern way to activate the environment for all subsequent commands
-# It configures the shell to automatically activate the base environment.
-SHELL ["/bin/bash", "-l", "-c"]
-# RUN micromamba shell init -s bash -p $MAMBA_ROOT_PREFIX && \
-#     echo "conda activate $ENV_NAME" >> ~/.bashrc
-RUN micromamba shell init -s bash -p $MAMBA_ROOT_PREFIX && \
-    echo "micromamba activate $ENV_NAME" >> ~/.bashrc
-
-# Set the default environment variable for tools that need it
-ENV CONDA_DEFAULT_ENV=$ENV_NAME
+# Set up the shell to use the activated environment by default
 ENV PATH=$MAMBA_ROOT_PREFIX/envs/$ENV_NAME/bin:$PATH
 
 # Set the working directory
@@ -53,9 +64,9 @@ WORKDIR /app
 # Copy the application source code
 COPY . /app
 
-# Install the s1swotcolocs library
-# Ensure your setup.py or pyproject.toml is configured correctly for installation
+# Install your local application code into the environment
+# The environment already contains s1ifr and all its dependencies
 RUN pip install .
 
-# The environment is now active, so you can run python directly
+# Set the default command for the container
 CMD ["python"]
