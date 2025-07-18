@@ -31,7 +31,10 @@ DEFAULT_SWOT_VARIABLES = [
 app_logger = logging.getLogger(__file__)
 console_handler_app = logging.StreamHandler(sys.stdout)
 
-def get_original_sar_filepath_from_metacoloc(metacolocds, cpt, pola_selected='SDV') -> (list, dict):
+
+def get_original_sar_filepath_from_metacoloc(
+    metacolocds, cpt, pola_selected="SDV"
+) -> (list, dict):
     """
 
     :param metacolocds:
@@ -42,17 +45,20 @@ def get_original_sar_filepath_from_metacoloc(metacolocds, cpt, pola_selected='SD
     fullpath_iw_slc_safe = None
     basesafes = metacolocds["sar_safe_name"].values
     fullpath_iw_slc_safes = []
-    cpt['safe_listed_in_metacoloc'] += len(basesafes)
+    cpt["safe_listed_in_metacoloc"] += len(basesafes)
     for basesafe in basesafes:
         if pola_selected in basesafe:
             app_logger.info("basesafe : %s", basesafe)
             orignal_s1 = s1ifr.get_path_from_base_safe.get_path_from_base_safe(
-              basesafe, archive_name="datawork"
+                basesafe, archive_name="datawork"
             )
             orignal_s1_bis = s1ifr.get_path_from_base_safe.get_path_from_base_safe(
-              basesafe, archive_name="scale"
+                basesafe, archive_name="scale"
             )
-            if os.path.exists(orignal_s1) is True or os.path.exists(orignal_s1_bis) is True:
+            if (
+                os.path.exists(orignal_s1) is True
+                or os.path.exists(orignal_s1_bis) is True
+            ):
                 if os.path.exists(orignal_s1) is True:
                     fullpath_iw_slc_safe = orignal_s1
                 else:
@@ -62,12 +68,12 @@ def get_original_sar_filepath_from_metacoloc(metacolocds, cpt, pola_selected='SD
                 else:
                     cpt["safe_iw_slc_not_found"] += 1
                     # fullpath_iw_slc_safes.append(None)
-                    app_logger.debug('dev,safe missing %s',fullpath_iw_slc_safe)
+                    app_logger.debug("dev,safe missing %s", fullpath_iw_slc_safe)
             else:
                 cpt["safe_iw_slc_not_found"] += 1
-                app_logger.debug('dev,safe missing %s',orignal_s1)
+                app_logger.debug("dev,safe missing %s", orignal_s1)
         else:
-            cpt['IW_SAFE_BAD_POLA'] +=1
+            cpt["IW_SAFE_BAD_POLA"] += 1
 
     return fullpath_iw_slc_safes, cpt
 
@@ -123,7 +129,7 @@ def read_swot_windwave_l2_file(metacolocds, confpath, cpt=None) -> (xr.Dataset, 
             dir_swot_l2,
             baseswotl3.replace("Expert", "WindWave")
             .replace("L3", "L2")
-            .split("_v")[0][0:-17] # remove the dates up to last second
+            .split("_v")[0][0:-17]  # remove the dates up to last second
             + "*.nc",
         )
         app_logger.debug("pattern_l2 %s", pattern_l2)
@@ -139,13 +145,15 @@ def read_swot_windwave_l2_file(metacolocds, confpath, cpt=None) -> (xr.Dataset, 
             else:
                 cpt["swot_file_direct_pickup_latest"] += 1
             dsswotl2 = xr.open_dataset(pathswotl2final).load()
-            dsswotl2['longitude_adjusted'] = dsswotl2['longitude'].where(dsswotl2['longitude'] < 180, dsswotl2['longitude'] - 360)
+            dsswotl2["longitude_adjusted"] = dsswotl2["longitude"].where(
+                dsswotl2["longitude"] < 180, dsswotl2["longitude"] - 360
+            )
 
         else:
-            app_logger.debug('dev  L2 SWOT pattern missing %s',pattern_l2)
+            app_logger.debug("dev  L2 SWOT pattern missing %s", pattern_l2)
     else:
-        cpt['swot_L3_file_absent'] += 1
-        app_logger.debug('dev L3 SWOT missing %s',full_path_swot)
+        cpt["swot_L3_file_absent"] += 1
+        app_logger.debug("dev L3 SWOT missing %s", full_path_swot)
     return dsswotl2, pathswotl2final, cpt
 
 
@@ -287,8 +295,8 @@ def loop_on_each_sar_tiles(
         if d in ["tile_sample", "tile_line"]
     }
     all_tile_cases = [i for i in xndindex(gridsarL2)]
-    app_logger.info('enter the loop over SAR tiles')
-    for x in tqdm(range(len(all_tile_cases)),desc='tile-loop'):
+    app_logger.info("enter the loop over SAR tiles")
+    for x in tqdm(range(len(all_tile_cases)), desc="tile-loop"):
         # for ii in tqdm(range(len(sardf['lat_centroid_sar']))):
         # lontile = sardf['lon_centroid_sar'].iloc[ii]
         # lattile = sardf['lat_centroid_sar'].iloc[ii]
@@ -320,12 +328,12 @@ def loop_on_each_sar_tiles(
             app_logger.debug("variables with dim_0 : %s", uu)
         else:
             consolidated_all_tiles_colocs.append(uu)
-    app_logger.info('merge the colocated tiles.')
+    app_logger.info("merge the colocated tiles.")
     ds_colocation_swot = xr.merge(
         consolidated_all_tiles_colocs,
     )
     # xr.combine_by_coords(all_tiles_colocs)
-    app_logger.info('merge SAR and SWOT data.')
+    app_logger.info("merge SAR and SWOT data.")
     ds_l1c = xr.merge([dssar, ds_colocation_swot])
     ds_l1c.attrs["SWOT_L3_data"] = full_path_swot
     return ds_l1c, cpt
@@ -427,8 +435,11 @@ def associate_sar_and_swot_seastate_params(
                         path_l2wav_sar_safe, "l2*" + subswath_sar + "*.nc"
                     )
                     lst_nc_sar = glob.glob(pattern_sar)
-                    if len(lst_nc_sar)>1:
-                        app_logger.warning('\n warning : nb of SAR matching pattern %s is : %i'%(pattern_sar,len(lst_nc_sar)))
+                    if len(lst_nc_sar) > 1:
+                        app_logger.warning(
+                            "\n warning : nb of SAR matching pattern %s is : %i"
+                            % (pattern_sar, len(lst_nc_sar))
+                        )
                     if len(lst_nc_sar) > 0:
                         fsar = lst_nc_sar[0]
                         dssar = xr.open_dataset(fsar, group=groupsar).load()
@@ -446,9 +457,12 @@ def associate_sar_and_swot_seastate_params(
                             & (dsswotl2["longitude"] <= xmax),
                             drop=True,
                         )
-                        
+
                         points = np.column_stack(
-                            (subswot['longitude'].values.ravel(), subswot["latitude"].values.ravel())
+                            (
+                                subswot["longitude"].values.ravel(),
+                                subswot["latitude"].values.ravel(),
+                            )
                         )
                         # Create a MultiPoint object
                         multi_point = MultiPoint(points)
@@ -487,7 +501,7 @@ def associate_sar_and_swot_seastate_params(
         else:
             app_logger.info("SWOT Level-2 is not available.")
             cpt["SWOT_L2_not_available"] += 1
-            app_logger.debug('dev SWOT missing',pathswotl2final)
+            app_logger.debug("dev SWOT missing", pathswotl2final)
     app_logger.info("counter : %s", cpt)
     return cpt
 
@@ -534,7 +548,7 @@ def main():
     log_format = "%(asctime)s %(levelname)s %(filename)s(%(lineno)d) %(message)s"
     date_format = "%d-%m-%Y %H:%M:%S"
     nouveau_formatter = logging.Formatter(log_format, datefmt=date_format)
-    #console_handler_app = logging.StreamHandler(sys.stdout)
+    # console_handler_app = logging.StreamHandler(sys.stdout)
     console_handler_app.setFormatter(nouveau_formatter)
 
     # It's good practice to remove existing handlers, especially if main() might be called multiple times
