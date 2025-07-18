@@ -23,7 +23,7 @@ dependencies = [
   "alphashape",
   "geoviews",
   "hvplot",
-  "s1ifr @ git+https://gitlab.ifremer.fr/lops-wave/s1ifr@main",
+  #  "s1ifr @ git+https://gitlab.ifremer.fr/lops-wave/s1ifr@main",
 ]
 
 dynamic = ["version"]
