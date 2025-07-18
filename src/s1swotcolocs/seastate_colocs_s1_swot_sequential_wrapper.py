@@ -125,6 +125,7 @@ def main():
     HOST_SOURCES_DATA = conf["HOST_SOURCES_DATA"]
     HOST_OUTPUT_DIR = conf["HOST_SEASTATE_COLOC_OUTPUT_DIR"]
     CONTAINER_SCRIPT_PATH = "coloc_seastate_SWOT_S1_sequential"
+    SWOT_L2_AVISO_DIR = conf['SWOT_L2_AVISO_DIR']
     # --- End of Configuration ---
     if args.startdate and args.stopdate:
         if not is_valid_date_format(args.startdate) or not is_valid_date_format(
@@ -167,6 +168,8 @@ def main():
         f"{HOST_SOURCES_DATA}:{HOST_SOURCES_DATA}",
         "-v",
         f"{HOST_OUTPUT_DIR}:{HOST_OUTPUT_DIR}",
+        "-v",
+        f"{SWOT_L2_AVISO_DIR}:{SWOT_L2_AVISO_DIR}",
         DOCKER_IMAGE,
         # "python", "-u", CONTAINER_SCRIPT_PATH,
         CONTAINER_SCRIPT_PATH,
