@@ -178,7 +178,9 @@ def main():
         HOST_OUTPUT_DIR,
         "--confpath",
         args.confpath,
-        "--groupsar intraburst --overwrite",
+        "--groupsar",
+        "intraburst",
+        "--overwrite",
     ]
     stream_command(docker_run_command, "Execute collocation script in a new container")
 

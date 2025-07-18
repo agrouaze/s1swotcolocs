@@ -21,7 +21,8 @@ REGISTRY_IMAGE_NAME="gitlab-registry.ifremer.fr/lops-wave/s1ifr:s1swot"
 # fi
 # Docker commands
 echo "Building Docker image: ${BASE_IMAGE_NAME}:${VERSION}"
-docker build . --build-arg GITLAB_CREDS=$(cat gitlab_creds) -t "${BASE_IMAGE_NAME}:${VERSION}"
+#docker build . --no-cache --build-arg GITLAB_CREDS=$(cat gitlab_creds) -t "${BASE_IMAGE_NAME}:${VERSION}"
+docker build . --no-cache --build-arg GITLAB_CREDS=$(cat gitlab_creds) -t "${BASE_IMAGE_NAME}:${VERSION}"
 
 echo "Tagging Docker image: ${BASE_IMAGE_NAME}:${VERSION} -> ${REGISTRY_IMAGE_NAME}-${VERSION}"
 docker tag "${BASE_IMAGE_NAME}:${VERSION}" "${REGISTRY_IMAGE_NAME}-${VERSION}"
