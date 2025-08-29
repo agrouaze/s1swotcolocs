@@ -20,3 +20,12 @@ dependencies:
     - scipy
     - shapely
     - geopandas
+    - antimeridian
+    - tqdm
+    - pandas
+    - geodatasets
+    - cdsodatacli
+    - h5netcdf
+    - alphashape
+    - geoviews
+    - hvplot
