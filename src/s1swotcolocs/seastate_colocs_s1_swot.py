@@ -26,8 +26,12 @@ DEFAULT_SWOT_VARIABLES = [
     "latitude",
     "longitude",
     "swh_karin",
+    "wind_speed_karin",
+    "wind_speed_karin_2",
+    "wind_speed_model_u",
+    "wind_speed_model_v",
 ]  # Level2 # ,'swh_karin_qual','sig0_karin_uncert'
-
+UNTRUSTABLE_SWH = 30  # m, threshold above which the SWH is considered untrustable
 app_logger = logging.getLogger(__file__)
 console_handler_app = logging.StreamHandler(sys.stdout)
 
@@ -161,7 +165,7 @@ def read_swot_windwave_l2_file(metacolocds, confpath, cpt=None) -> (xr.Dataset, 
             else:
                 cpt["swot_file_direct_pickup_latest"] += 1
             dsswotl2 = xr.open_dataset(pathswotl2final).load()
-            dsswotl2["longitude_adjusted"] = dsswotl2["longitude"].where(
+            dsswotl2["longitude"] = dsswotl2["longitude"].where(
                 dsswotl2["longitude"] < 180, dsswotl2["longitude"] - 360
             )
 
@@ -201,6 +205,33 @@ def create_empty_coloc_res(indexes_sar_grid) -> xr.Dataset:
     )
     return empty_dummy_condensated_swot_coloc
 
+def compute_gradient_swot_swh(dsswotl2):
+    """
+    
+    use gradient of SWH to spot unphysical values
+
+    """
+    #################################################################
+    # FILTERING UNFILTERED RAIN OR BUMPS IN HS CLEARLY NOT PHYSICAL #
+    #################################################################
+
+    columns_not_fully_nan = np.argwhere(np.nansum(dsswotl2.swh_karin.values,axis=0) !=0) 
+    summed_columns_zero_or_non_zero = np.nansum(dsswotl2.swh_karin.values,axis=0) != 0
+    transitions = np.diff(summed_columns_zero_or_non_zero.astype(int))
+    
+    start_idxs = np.where(transitions == 1)[0] + 1  # add 1 because diff shifts by one
+    end_idxs = np.where(transitions == -1)[0]       # these are already at the right place
+    swh_karin_raw = dsswotl2['swh_karin'].values
+    # On calcule les diff selon x ou selon y, avec algo de différence centrée - comme on a 2km de résolution, et qu'on prend -1 , +1, ça fait du 2dx = 2dy = 4 km)
+    swh_karin_diff_x = np.nan*np.ones(swh_karin_raw.shape)
+    swh_karin_diff_y = np.nan*np.ones(swh_karin_raw.shape)
+    for i in range(2):
+        swh_karin_diff_x[:, start_idxs[i] + 1 : end_idxs[i] - 1] = swh_karin_raw[:,start_idxs[i] + 2 : end_idxs[i]] - swh_karin_raw[:,start_idxs[i] : end_idxs[i] - 2]
+        swh_karin_diff_y[1:-1,:] = swh_karin_raw[2:,:] - swh_karin_raw[:-2,:]
+    dsswotl2["dHsdx"] =  (("num_lines", "num_pixels"), swh_karin_diff_x/4) # gradient en m/km
+    dsswotl2["dHsdy"] =  (("num_lines", "num_pixels"), swh_karin_diff_y/4) # gradient en m/km
+    return dsswotl2
+
 
 def s1swot_core_tile_coloc(
     lontile, lattile, treeswot, radius_coloc, dsswot, indexes_sar, cpt
@@ -229,6 +260,7 @@ def s1swot_core_tile_coloc(
             (index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels)
         )
     subset = [dsswot.isel(num_lines=i, num_pixels=j) for i, j in indices]
+    subset = compute_gradient_swot_swh(dsswotl2=subset)
     if len(subset) > 0:
         swotclosest = xr.concat(subset, dim="points")
 
@@ -250,7 +282,7 @@ def s1swot_core_tile_coloc(
                         if vv == "swk_karin":
                             maskswotswhqual = (
                                 swotclosest["swh_karin_qual"].values == 0
-                            ) & (swotclosest["rain_flag"].values == 0)
+                            ) & (swotclosest["rain_flag"].values == 0) & (swotclosest['swh_karin'].values>0) & (swotclosest['swh_karin'].values<UNTRUSTABLE_SWH)
                         else:
                             maskswotswhqual = True
                         valval = fcts[fct](swotclosest[vv].values[maskswotswhqual])
@@ -292,7 +324,7 @@ def loop_on_each_sar_tiles(
     """
 
     lonswot = dsswotl2["longitude"].values.ravel()
-    lonswot = (lonswot + 180) % 360 - 180
+    # lonswot = (lonswot + 180) % 360 - 180 # already done in read_swot_windwave_l2_file()
     latswot = dsswotl2["latitude"].values.ravel()
     maskswot = np.isfinite(lonswot) & np.isfinite(latswot)
     app_logger.info(
@@ -445,6 +477,7 @@ def associate_sar_and_swot_seastate_params(
                     ),
                 )
                 if os.path.exists(fpath_out) and overwrite is False:
+                    cpt['output_file_already_existing'] += 1
                     app_logger.info("coloc file already exists: %s", fpath_out)
                 else:
                     pattern_sar = os.path.join(
