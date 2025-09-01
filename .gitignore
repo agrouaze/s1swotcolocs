@@ -109,3 +109,5 @@ ENV/
 .idea/
 
 gitlab_creds
+
+localconfig.yml

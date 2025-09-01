@@ -9,7 +9,6 @@ from tqdm import tqdm
 from dateutil import rrule
 from s1swotcolocs.utils import get_conf_content
 from s1swotcolocs.seastate_colocs_s1_swot import associate_sar_and_swot_seastate_params
-from s1swotcolocs.seastate_colocs_s1_swot import console_handler_app as lowerhandler
 
 app_logger = logging.getLogger(__file__)
 
@@ -70,11 +69,13 @@ def main():
     # Iterate over a slice [:] to avoid issues when modifying the list during iteration
     # for handler in app_logger.handlers[:]:
     #    app_logger.removeHandler(handler)
-
+    for handler in app_logger.handlers[:]:
+        # handler.setFormatter(nouveau_formatter)
+        app_logger.removeHandler(handler)
     app_logger.addHandler(console_handler_app)
-    app_logger.addHandler(lowerhandler)
+    # app_logger.addHandler(lowerhandler)
     app_logger.setLevel(log_level)
-    # app_logger.propagate = False  # <--- THIS IS THE KEY CHANGE
+    app_logger.propagate = False  # <--- THIS IS THE KEY CHANGE
     conf = get_conf_content(args.confpath)
     metadir = conf["HOST_META_COLOC_OUTPUT_DIR"]
     app_logger.info("dir to search for meta colocs : %s", metadir)
@@ -91,16 +92,19 @@ def main():
             "coloc_SWOT*.nc",
         )
         lst_files += glob.glob(pat)
+    lst_files = sorted(lst_files)
     app_logger.info("nb files meta data colocs found; %i", len(lst_files))
+    app_logger.info("outputdir : %s", args.outputdir)
     bigcpt = collections.defaultdict(int)
-    for uu in tqdm(range(len(lst_files))):
+    for uu in tqdm(range(len(lst_files)), desc="overall progress meta-coloc"):
         ffmeta = lst_files[uu]
         app_logger.debug("ffmeta : %s", ffmeta)
-        cpt = associate_sar_and_swot_seastate_params(
+        cpt, new_files = associate_sar_and_swot_seastate_params(
             metacolocpath=ffmeta,
             confpath=args.confpath,
             groupsar=args.groupsar,
             overwrite=args.overwrite,
+            outputdir=args.outputdir,
         )
         # app_logger.info('%i counter : %s',uu,cpt)
 
@@ -108,7 +112,11 @@ def main():
         for key in cpt:
             bigcpt[key] += cpt[key]
 
-    app_logger.info("done : %s", bigcpt)
+    # app_logger.info("done : %s", bigcpt)
+    for kk in bigcpt.keys():
+        app_logger.info("bigcpt[%s] = %s", kk, bigcpt[kk])
+    if len(new_files) > 0:
+        app_logger.info("example of new coloc files created : %s", new_files[0])
 
 
 if __name__ == "__main__":
