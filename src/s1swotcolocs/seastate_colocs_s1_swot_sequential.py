@@ -9,7 +9,6 @@ from tqdm import tqdm
 from dateutil import rrule
 from s1swotcolocs.utils import get_conf_content
 from s1swotcolocs.seastate_colocs_s1_swot import associate_sar_and_swot_seastate_params
-from s1swotcolocs.seastate_colocs_s1_swot import console_handler_app as lowerhandler
 
 app_logger = logging.getLogger(__file__)
 
@@ -95,12 +94,12 @@ def main():
         lst_files += glob.glob(pat)
     lst_files = sorted(lst_files)
     app_logger.info("nb files meta data colocs found; %i", len(lst_files))
-    app_logger.info('outputdir : %s', args.outputdir)
+    app_logger.info("outputdir : %s", args.outputdir)
     bigcpt = collections.defaultdict(int)
-    for uu in tqdm(range(len(lst_files)),desc="overall progress meta-coloc"):
+    for uu in tqdm(range(len(lst_files)), desc="overall progress meta-coloc"):
         ffmeta = lst_files[uu]
         app_logger.debug("ffmeta : %s", ffmeta)
-        cpt,new_files = associate_sar_and_swot_seastate_params(
+        cpt, new_files = associate_sar_and_swot_seastate_params(
             metacolocpath=ffmeta,
             confpath=args.confpath,
             groupsar=args.groupsar,
@@ -117,7 +116,7 @@ def main():
     for kk in bigcpt.keys():
         app_logger.info("bigcpt[%s] = %s", kk, bigcpt[kk])
     if len(new_files) > 0:
-        app_logger.info("example of new coloc files created : %s",new_files[0])
+        app_logger.info("example of new coloc files created : %s", new_files[0])
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ from s1swotcolocs.utils import get_conf_content
 from s1swotcolocs.pickup_best_swot_file import check_if_latest_version
 
 DEFAULT_IFREMER_S1_VERSION_L1B = ["A17", "A18", "A21", "A23", "A16", "A15"]
-SWOT_SWATH_LIMITS = {'left':(0,34),'right':(35,69)}
+SWOT_SWATH_LIMITS = {"left": (0, 34), "right": (35, 69)}
 DEFAULT_SWOT_VARIABLES = [
     "latitude",
     "longitude",
@@ -47,12 +47,12 @@ def xndindex(sizes):
     Return:
         iterator over dict
     """
-    
 
     for d, k in zip(
         repeat(tuple(sizes.keys())), zip(np.ndindex(tuple(sizes.values())))
     ):
-        yield {k: l for k, l in zip(d, k[0])}
+        yield {k: lll for k, lll in zip(d, k[0])}
+
 
 def get_original_sar_filepath_from_metacoloc(
     metacolocds, cpt, pola_selected="SDV"
@@ -112,7 +112,9 @@ def get_L2WAV_S1_IW_path(fullpath_s1_iw_slc, version_L1B=None):
     path_l2wav_sar = None
     df = pd.DataFrame({"L1_SLC": [fullpath_s1_iw_slc]})
     app_logger.info("df : %s", df)
-    newdf = paths_safe_product_family.get_products_family(df, l1bversions=version_L1B,disable_tqdm=True)
+    newdf = paths_safe_product_family.get_products_family(
+        df, l1bversions=version_L1B, disable_tqdm=True
+    )
     if len(newdf["L2_WAV_E12"]) > 0:
         path_l2wav_sar = newdf["L2_WAV_E12"].values[0]
     elif len(newdf["L2_WAV_E11"]) > 0:
@@ -207,9 +209,10 @@ def create_empty_coloc_res(indexes_sar_grid) -> xr.Dataset:
     )
     return empty_dummy_condensated_swot_coloc
 
+
 def filter_out_swot_swath_edges(dsswotl2):
     """
-    
+
     This method would allow to filter out the edges of the SWOT swath where the SWH and wind speed values are often unphysical.
     it could be used for data in PIC0 processing but it is interesting to keep the product as it is only using the quality flags
     this allows to monitore product improvements over time.
@@ -219,8 +222,8 @@ def filter_out_swot_swath_edges(dsswotl2):
 
     Returns:
         dsswotl2: xr.Dataset SWOT Level-2 WindWave AVISO product with edges set to np.nan
-    
-    
+
+
     """
     # definition of index num_pixels to set to np.nan
     slices = [slice(0, 4), slice(29, 39), slice(65, 69)]
@@ -228,15 +231,16 @@ def filter_out_swot_swath_edges(dsswotl2):
     # Mettre à np.nan les valeurs pour les bandes spécifiées
     dsswotl2 = dsswotl2.copy()  # Pour éviter de modifier l'original
     for s in slices:
-        dsswotl2['swh_karin'][:, s] = np.nan
-        dsswotl2['wind_speed_karin'][:, s] = np.nan
-        dsswotl2['wind_speed_karin_2'][:, s] = np.nan
-    
+        dsswotl2["swh_karin"][:, s] = np.nan
+        dsswotl2["wind_speed_karin"][:, s] = np.nan
+        dsswotl2["wind_speed_karin_2"][:, s] = np.nan
+
     return dsswotl2
+
 
 def compute_gradient_swot_swh(dsswotl2):
     """
-    
+
     use gradient of SWH to spot unphysical values
 
     Args:
@@ -250,26 +254,34 @@ def compute_gradient_swot_swh(dsswotl2):
     # FILTERING UNFILTERED RAIN OR BUMPS IN HS CLEARLY NOT PHYSICAL #
     #################################################################
 
-    # columns_not_fully_nan = np.argwhere(np.nansum(dsswotl2.swh_karin.values,axis=0) !=0) 
+    # columns_not_fully_nan = np.argwhere(np.nansum(dsswotl2.swh_karin.values,axis=0) !=0)
     # summed_columns_zero_or_non_zero = np.nansum(dsswotl2.swh_karin.values,axis=0) != 0
     # transitions = np.diff(summed_columns_zero_or_non_zero.astype(int))
-    
+
     # start_idxs = np.where(transitions == 1)[0] + 1  # add 1 because diff shifts by one
     # end_idxs = np.where(transitions == -1)[0]       # these are already at the right place
     # print('start_idxs',start_idxs)
     # print('end_idxs',end_idxs)
     # import pdb
     # pdb.set_trace()
-    swh_karin_raw = dsswotl2['swh_karin'].values
+    swh_karin_raw = dsswotl2["swh_karin"].values
     # On calcule les diff selon x ou selon y, avec algo de différence centrée - comme on a 2km de pixel spacing dans le produit WindWave (et expert), et qu'on prend -1 , +1, ça fait du 2dx = 2dy = 4 km)
-    swh_karin_diff_x = np.nan*np.ones(swh_karin_raw.shape)
-    swh_karin_diff_y = np.nan*np.ones(swh_karin_raw.shape)
+    swh_karin_diff_x = np.nan * np.ones(swh_karin_raw.shape)
+    swh_karin_diff_y = np.nan * np.ones(swh_karin_raw.shape)
     # for i in range(2):
     #     swh_karin_diff_x[:, start_idxs[i] + 1 : end_idxs[i] - 1] = swh_karin_raw[:,start_idxs[i] + 2 : end_idxs[i]] - swh_karin_raw[:,start_idxs[i] : end_idxs[i] - 2]
-    swh_karin_diff_x[:,1:-1] = swh_karin_raw[:,2:] - swh_karin_raw[:,:-2] # simplification compared to orginal code
-    swh_karin_diff_y[1:-1,:] = swh_karin_raw[2:,:] - swh_karin_raw[:-2,:]
-    dsswotl2["dHsdx"] =  (("num_lines", "num_pixels"), swh_karin_diff_x/4) # gradient en m/km
-    dsswotl2["dHsdy"] =  (("num_lines", "num_pixels"), swh_karin_diff_y/4) # gradient en m/km
+    swh_karin_diff_x[:, 1:-1] = (
+        swh_karin_raw[:, 2:] - swh_karin_raw[:, :-2]
+    )  # simplification compared to orginal code
+    swh_karin_diff_y[1:-1, :] = swh_karin_raw[2:, :] - swh_karin_raw[:-2, :]
+    dsswotl2["dHsdx"] = (
+        ("num_lines", "num_pixels"),
+        swh_karin_diff_x / 4,
+    )  # gradient en m/km
+    dsswotl2["dHsdy"] = (
+        ("num_lines", "num_pixels"),
+        swh_karin_diff_y / 4,
+    )  # gradient en m/km
     return dsswotl2
 
 
@@ -300,7 +312,7 @@ def s1swot_core_tile_coloc(
             (index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels)
         )
     subset = [dsswot.isel(num_lines=i, num_pixels=j) for i, j in indices]
-    
+
     if len(subset) > 0:
         swotclosest = xr.concat(subset, dim="points")
 
@@ -321,8 +333,11 @@ def s1swot_core_tile_coloc(
                         # many pts I use quality flag SWOT
                         if vv == "swk_karin":
                             maskswotswhqual = (
-                                swotclosest["swh_karin_qual"].values == 0
-                            ) & (swotclosest["rain_flag"].values == 0) & (swotclosest['swh_karin'].values>0) & (swotclosest['swh_karin'].values<UNTRUSTABLE_SWH)
+                                (swotclosest["swh_karin_qual"].values == 0)
+                                & (swotclosest["rain_flag"].values == 0)
+                                & (swotclosest["swh_karin"].values > 0)
+                                & (swotclosest["swh_karin"].values < UNTRUSTABLE_SWH)
+                            )
                         else:
                             maskswotswhqual = True
                         valval = fcts[fct](swotclosest[vv].values[maskswotswhqual])
@@ -385,7 +400,7 @@ def loop_on_each_sar_tiles(
     }
     all_tile_cases = [i for i in xndindex(gridsarL2)]
     app_logger.info("enter the loop over SAR tiles")
-    for x in tqdm(range(len(all_tile_cases)), desc="tile-loop",disable=True):
+    for x in tqdm(range(len(all_tile_cases)), desc="tile-loop", disable=True):
         # for ii in tqdm(range(len(sardf['lat_centroid_sar']))):
         # lontile = sardf['lon_centroid_sar'].iloc[ii]
         # lattile = sardf['lat_centroid_sar'].iloc[ii]
@@ -492,21 +507,27 @@ def associate_sar_and_swot_seastate_params(
     date_swot_str = SWOT_start_piece.strftime("%Y%m%dT%H%M%S")
     app_logger.info("nb IW SAFE found at Ifremer: %i", len(fullpath_iw_slc_safes))
     new_files = []
-    for iixx in tqdm(range(len(fullpath_iw_slc_safes)),disable=True):
-        iw_slc_safe =fullpath_iw_slc_safes[iixx]
+    for iixx in tqdm(range(len(fullpath_iw_slc_safes)), disable=True):
+        iw_slc_safe = fullpath_iw_slc_safes[iixx]
         cpt["total_safe_SAR_tested"] += 1
         app_logger.info("treat : %s", iw_slc_safe)
         dsswotl2, pathswotl2final, cpt = read_swot_windwave_l2_file(
             metacolocds, confpath=confpath, cpt=cpt
         )
         if dsswotl2 is not None:
-            version_swot_processing = dsswotl2.attrs.get('crid','unknown')
-            part_swot_basename = 'SWOT_L2_WindWave_'+date_swot_str+'_'+ version_swot_processing
+            version_swot_processing = dsswotl2.attrs.get("crid", "unknown")
+            part_swot_basename = (
+                "SWOT_L2_WindWave_" + date_swot_str + "_" + version_swot_processing
+            )
             path_l2wav_sar_safe = get_L2WAV_S1_IW_path(
                 iw_slc_safe, version_L1B=DEFAULT_IFREMER_S1_VERSION_L1B
             )
             for subswath_sar in ["iw1", "iw2", "iw3"]:
-                sar_basename_part = os.path.basename(iw_slc_safe).replace(".SAFE", "")+"-" + subswath_sar
+                sar_basename_part = (
+                    os.path.basename(iw_slc_safe).replace(".SAFE", "")
+                    + "-"
+                    + subswath_sar
+                )
                 cpt["total_suswath_sar_tested"] += 1
                 fpath_out = os.path.join(
                     outputdir,
@@ -523,10 +544,10 @@ def associate_sar_and_swot_seastate_params(
                     #         )
                     #     ),
                     # ),
-                    'seastate_coloc_%s_%s.nc'%(sar_basename_part,part_swot_basename)
+                    "seastate_coloc_%s_%s.nc" % (sar_basename_part, part_swot_basename),
                 )
                 if os.path.exists(fpath_out) and overwrite is False:
-                    cpt['output_file_already_existing'] += 1
+                    cpt["output_file_already_existing"] += 1
                     app_logger.info("coloc file already exists: %s", fpath_out)
                 else:
                     pattern_sar = os.path.join(
@@ -605,8 +626,8 @@ def associate_sar_and_swot_seastate_params(
         app_logger.debug("cpt[%s] = %s", kk, cpt[kk])
     # app_logger.info("counter : %s", cpt)
     if len(new_files) > 0:
-        app_logger.debug("example of new coloc files created : %s",new_files[0])
-    return cpt,new_files
+        app_logger.debug("example of new coloc files created : %s", new_files[0])
+    return cpt, new_files
 
 
 def parse_args():
