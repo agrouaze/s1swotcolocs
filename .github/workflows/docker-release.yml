@@ -19,14 +19,14 @@ jobs:
               uses: docker/login-action@v3
               with:
                   registry: ghcr.io
-                  username: ${{ github.actor }} # or your username 'agrouaze'
+                  username: ${{ github.actor }} 
                   password: ${{ secrets.TOKEN_GITHUB }}
 
             - name: Extract metadata (tags, labels) for Docker
               id: meta
               uses: docker/metadata-action@v5
               with:
-                  images: ghcr.io/${{ github.repository_owner }}/s1swotcolocs # ghcr.io/agrouaze/s1swotcolocs
+                  images: ghcr.io/${{ github.repository_owner }}/s1swotcolocs 
 
             - name: Build and push Docker image
               uses: docker/build-push-action@v5
@@ -35,3 +35,5 @@ jobs:
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
+                  build-args: |
+                    GITLAB_CREDS=${{ secrets.GITLAB_CREDS }}
