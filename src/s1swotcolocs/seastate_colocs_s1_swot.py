@@ -34,7 +34,7 @@ DEFAULT_SWOT_VARIABLES = [
     "swh_nadir_altimeter",
 ]  # Level2 # ,'swh_karin_qual','sig0_karin_uncert'
 UNTRUSTABLE_SWH = 30  # m, threshold above which the SWH is considered untrustable
-lines_to_keep_in_swot_swath = [28,29,30,39,40,41]
+lines_to_keep_in_swot_swath = [28, 29, 30, 39, 40, 41]
 app_logger = logging.getLogger(__file__)
 console_handler_app = logging.StreamHandler(sys.stdout)
 
@@ -369,7 +369,6 @@ def s1swot_core_tile_coloc(
     return condensated_swot, cpt
 
 
-
 def s1swot_core_tile_coloc_nadir(
     lontile, lattile, treeswot, radius_coloc, dsswot, indexes_sar, cpt
 ) -> xr.Dataset:
@@ -455,7 +454,7 @@ def s1swot_core_tile_coloc_nadir(
 
 def get_swot_tree(dsswot):
     """
-    
+
     Arguments:
         dsswot (xr.Dataset)
     """
@@ -465,6 +464,7 @@ def get_swot_tree(dsswot):
     points = np.c_[lonswot[maskswot], latswot[maskswot]]
     treeswot = spatial.KDTree(points)
     return treeswot
+
 
 def loop_on_each_sar_tiles(
     dssar, dsswotl2, radius_coloc, full_path_swot, cpt
@@ -481,8 +481,10 @@ def loop_on_each_sar_tiles(
         ds_l2c_nadir (xr.Dataset)
         cpt (collections.defaultdict)
     """
-    
-    dsswotl2_closenadir = dsswotl2.isel({'num_pixels':lines_to_keep_in_swot_swath}) # selection validated in notebook
+
+    dsswotl2_closenadir = dsswotl2.isel(
+        {"num_pixels": lines_to_keep_in_swot_swath}
+    )  # selection validated in notebook
     treeswot_nadir = get_swot_tree(dsswot=dsswotl2_closenadir)
     treeswot = get_swot_tree(dsswot=dsswotl2)
     # lonswot_nadir = dsswotl2_closenadir["longitude"].values.ravel()
@@ -533,14 +535,16 @@ def loop_on_each_sar_tiles(
                 indexes_sar=i,
                 cpt=cpt,
             )
-            tile_swot_nadir_condensated_at_SAR_point, cpt = s1swot_core_tile_coloc_nadir(
-                lontile,
-                lattile,
-                treeswot_nadir,
-                radius_coloc,
-                dsswot=dsswotl2_closenadir,
-                indexes_sar=i,
-                cpt=cpt,
+            tile_swot_nadir_condensated_at_SAR_point, cpt = (
+                s1swot_core_tile_coloc_nadir(
+                    lontile,
+                    lattile,
+                    treeswot_nadir,
+                    radius_coloc,
+                    dsswot=dsswotl2_closenadir,
+                    indexes_sar=i,
+                    cpt=cpt,
+                )
             )
         else:
             cpt["tile_sar_with_corrupted_geolocation"] += 1
@@ -576,7 +580,7 @@ def loop_on_each_sar_tiles(
     ds_l2c.attrs["SWOT_L3_data"] = full_path_swot
     ds_l2c_nadir = xr.merge([dssar, ds_colocation_swot_nadir])
     ds_l2c_nadir.attrs["SWOT_L3_data"] = full_path_swot
-    return ds_l2c,ds_l2c_nadir, cpt
+    return ds_l2c, ds_l2c_nadir, cpt
 
 
 def save_sea_state_coloc_file(colocds, fpath_out, cpt):
@@ -659,7 +663,7 @@ def associate_sar_and_swot_seastate_params(
                 iw_slc_safe, version_L1B=DEFAULT_IFREMER_S1_VERSION_L1B
             )
             for subswath_sar in ["iw1", "iw2", "iw3"]:
-                app_logger.info('subswath SAR : %s',subswath_sar)
+                app_logger.info("subswath SAR : %s", subswath_sar)
                 sar_basename_part = (
                     os.path.basename(iw_slc_safe).replace(".SAFE", "")
                     + "-"
@@ -698,7 +702,8 @@ def associate_sar_and_swot_seastate_params(
                     #         )
                     #     ),
                     # ),
-                    "seastate_nadirlike_coloc_%s_%s.nc" % (sar_basename_part, part_swot_basename),
+                    "seastate_nadirlike_coloc_%s_%s.nc"
+                    % (sar_basename_part, part_swot_basename),
                 )
                 if os.path.exists(fpath_out) and overwrite is False:
                     cpt["output_file_already_existing"] += 1
@@ -748,7 +753,7 @@ def associate_sar_and_swot_seastate_params(
                             gdfswot, alpha=tolerance_simplification
                         )
                         if alpha_shape_swot.intersects(polygon_sar_swubswath):
-                            l2c_ds,ds_l2c_nadir, cpt = loop_on_each_sar_tiles(
+                            l2c_ds, ds_l2c_nadir, cpt = loop_on_each_sar_tiles(
                                 dssar,
                                 dsswotl2=subswot,
                                 radius_coloc=conf["RADIUS_COLOC"],
@@ -759,7 +764,7 @@ def associate_sar_and_swot_seastate_params(
                             cpt = save_sea_state_coloc_file(
                                 colocds=l2c_ds, fpath_out=fpath_out, cpt=cpt
                             )
-                            app_logger.info('redo association for close nadir data')
+                            app_logger.info("redo association for close nadir data")
                             cpt = save_sea_state_coloc_file(
                                 colocds=ds_l2c_nadir, fpath_out=fpath_out_nadir, cpt=cpt
                             )
