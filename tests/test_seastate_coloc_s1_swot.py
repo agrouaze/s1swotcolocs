@@ -104,6 +104,11 @@ def sample_swot_l2_ds():
                 np.array([[50.02, 50.02], [50.12, 50.12]]),
             ),
             "swh_karin": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
+            "wind_speed_karin": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
+            "wind_speed_karin_2": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
+            "wind_speed_model_u": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
+            "wind_speed_model_v": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
+            "swh_nadir_altimeter": (("num_lines", "num_pixels"), np.ones((2, 2)) * 2.5),
         }
     )
 

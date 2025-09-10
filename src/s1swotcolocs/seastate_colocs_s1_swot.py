@@ -34,6 +34,7 @@ DEFAULT_SWOT_VARIABLES = [
     "swh_nadir_altimeter",
 ]  # Level2 # ,'swh_karin_qual','sig0_karin_uncert'
 UNTRUSTABLE_SWH = 30  # m, threshold above which the SWH is considered untrustable
+lines_to_keep_in_swot_swath = [28,29,30,39,40,41]
 app_logger = logging.getLogger(__file__)
 console_handler_app = logging.StreamHandler(sys.stdout)
 
@@ -480,7 +481,7 @@ def loop_on_each_sar_tiles(
         ds_l2c_nadir (xr.Dataset)
         cpt (collections.defaultdict)
     """
-    lines_to_keep_in_swot_swath = [28,29,30,39,40,41]
+    
     dsswotl2_closenadir = dsswotl2.isel({'num_pixels':lines_to_keep_in_swot_swath}) # selection validated in notebook
     treeswot_nadir = get_swot_tree(dsswot=dsswotl2_closenadir)
     treeswot = get_swot_tree(dsswot=dsswotl2)
