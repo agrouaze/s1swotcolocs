@@ -368,90 +368,6 @@ def s1swot_core_tile_coloc(
         condensated_swot = create_empty_coloc_res(indexes_sar_grid=indexes_sar)
     return condensated_swot, cpt
 
-
-def s1swot_core_tile_coloc_nadir(
-    lontile, lattile, treeswot, radius_coloc, dsswot, indexes_sar, cpt
-) -> xr.Dataset:
-    """
-
-    for a given SAR tile, look for SWOT neighbors points only in the swath close to nadir
-
-    Args:
-        lontile: float longitude of a SAR point
-        lattile: float latitude of a SAR point
-        treeswot: scipy.spatial SWOT reduce to swath lines close to nadir (left and right)
-        radius_coloc: float
-        dsswot: xr.Dataset SWOT data
-        indexes_sar: tile_line and tile_sample indexes to be able to reconstruct the SAR swath
-
-    Returns:
-        condensated_swot: xr.Dataset
-    """
-    neighbors = treeswot.query_ball_point([lontile, lattile], r=radius_coloc)
-    indices = []
-    condensated_swot = xr.Dataset()
-    for oneneighbor in neighbors:
-        index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels = (
-            np.unravel_index(oneneighbor, dsswot["longitude"].shape)
-        )
-        indices.append(
-            (index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels)
-        )
-    subset = [dsswot.isel(num_lines=i, num_pixels=j) for i, j in indices]
-
-    if len(subset) > 0:
-        swotclosest = xr.concat(subset, dim="points")
-
-        # number of points in the radius
-        condensated_swot["nb_SWOT_points"] = xr.DataArray(len(swotclosest["points"]))
-        # variables wind/ std / mean /median
-        fcts = {"mean": np.nanmean, "med": np.nanmedian, "std": np.nanstd}
-
-        for vv in DEFAULT_SWOT_VARIABLES:
-            for fct in fcts:
-                if np.isfinite(swotclosest[vv].values).any():
-                    if np.isfinite(swotclosest[vv].values).sum() == 1:
-                        if fct == "std":
-                            valval = np.nan
-                        else:
-                            valval = swotclosest[vv].values
-                    else:
-                        # many pts I use quality flag SWOT
-                        if vv == "swk_karin":
-                            maskswotswhqual = (
-                                (swotclosest["swh_karin_qual"].values == 0)
-                                & (swotclosest["rain_flag"].values == 0)
-                                & (swotclosest["swh_karin"].values > 0)
-                                & (swotclosest["swh_karin"].values < UNTRUSTABLE_SWH)
-                            )
-                        else:
-                            maskswotswhqual = True
-                        valval = fcts[fct](swotclosest[vv].values[maskswotswhqual])
-
-                else:
-                    valval = (
-                        np.nan
-                    )  # to avoid RuntimeWarning Degrees of freedom <= 0 for slice
-                condensated_swot["%s_%s" % (vv, fct)] = xr.DataArray(
-                    valval,
-                    attrs={
-                        "description": "%s of %s variable from SWOT points within a %f deg radius after swh_karin_qual=0 and rain_flag=0 filtering"
-                        % (fct, vv, radius_coloc)
-                    },
-                )
-                condensated_swot["%s_%s" % (vv, fct)].attrs.update(
-                    swotclosest[vv].attrs
-                )
-        condensated_swot = condensated_swot.assign_coords(indexes_sar)
-        condensated_swot = condensated_swot.expand_dims(["tile_line", "tile_sample"])
-        cpt["tile_with_SWOT_neighbors"] += 1
-    else:
-        app_logger.debug("one tile without SWOT neighbors")
-        cpt["tile_without_SWOT_neighbors"] += 1
-        condensated_swot = create_empty_coloc_res(indexes_sar_grid=indexes_sar)
-    return condensated_swot, cpt
-
-
 def get_swot_tree(dsswot):
     """
 
@@ -536,7 +452,7 @@ def loop_on_each_sar_tiles(
                 cpt=cpt,
             )
             tile_swot_nadir_condensated_at_SAR_point, cpt = (
-                s1swot_core_tile_coloc_nadir(
+                s1swot_core_tile_coloc(
                     lontile,
                     lattile,
                     treeswot_nadir,
