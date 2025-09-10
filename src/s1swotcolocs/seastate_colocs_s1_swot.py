@@ -290,6 +290,8 @@ def s1swot_core_tile_coloc(
 ) -> xr.Dataset:
     """
 
+    for a given SAR tile, look for SWOT neighbors points
+
     Args:
         lontile: float longitude of a SAR point
         lattile: float latitude of a SAR point
@@ -366,6 +368,103 @@ def s1swot_core_tile_coloc(
     return condensated_swot, cpt
 
 
+
+def s1swot_core_tile_coloc_nadir(
+    lontile, lattile, treeswot, radius_coloc, dsswot, indexes_sar, cpt
+) -> xr.Dataset:
+    """
+
+    for a given SAR tile, look for SWOT neighbors points only in the swath close to nadir
+
+    Args:
+        lontile: float longitude of a SAR point
+        lattile: float latitude of a SAR point
+        treeswot: scipy.spatial SWOT reduce to swath lines close to nadir (left and right)
+        radius_coloc: float
+        dsswot: xr.Dataset SWOT data
+        indexes_sar: tile_line and tile_sample indexes to be able to reconstruct the SAR swath
+
+    Returns:
+        condensated_swot: xr.Dataset
+    """
+    neighbors = treeswot.query_ball_point([lontile, lattile], r=radius_coloc)
+    indices = []
+    condensated_swot = xr.Dataset()
+    for oneneighbor in neighbors:
+        index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels = (
+            np.unravel_index(oneneighbor, dsswot["longitude"].shape)
+        )
+        indices.append(
+            (index_original_shape_swot_num_lines, index_original_shape_swot_num_pixels)
+        )
+    subset = [dsswot.isel(num_lines=i, num_pixels=j) for i, j in indices]
+
+    if len(subset) > 0:
+        swotclosest = xr.concat(subset, dim="points")
+
+        # number of points in the radius
+        condensated_swot["nb_SWOT_points"] = xr.DataArray(len(swotclosest["points"]))
+        # variables wind/ std / mean /median
+        fcts = {"mean": np.nanmean, "med": np.nanmedian, "std": np.nanstd}
+
+        for vv in DEFAULT_SWOT_VARIABLES:
+            for fct in fcts:
+                if np.isfinite(swotclosest[vv].values).any():
+                    if np.isfinite(swotclosest[vv].values).sum() == 1:
+                        if fct == "std":
+                            valval = np.nan
+                        else:
+                            valval = swotclosest[vv].values
+                    else:
+                        # many pts I use quality flag SWOT
+                        if vv == "swk_karin":
+                            maskswotswhqual = (
+                                (swotclosest["swh_karin_qual"].values == 0)
+                                & (swotclosest["rain_flag"].values == 0)
+                                & (swotclosest["swh_karin"].values > 0)
+                                & (swotclosest["swh_karin"].values < UNTRUSTABLE_SWH)
+                            )
+                        else:
+                            maskswotswhqual = True
+                        valval = fcts[fct](swotclosest[vv].values[maskswotswhqual])
+
+                else:
+                    valval = (
+                        np.nan
+                    )  # to avoid RuntimeWarning Degrees of freedom <= 0 for slice
+                condensated_swot["%s_%s" % (vv, fct)] = xr.DataArray(
+                    valval,
+                    attrs={
+                        "description": "%s of %s variable from SWOT points within a %f deg radius after swh_karin_qual=0 and rain_flag=0 filtering"
+                        % (fct, vv, radius_coloc)
+                    },
+                )
+                condensated_swot["%s_%s" % (vv, fct)].attrs.update(
+                    swotclosest[vv].attrs
+                )
+        condensated_swot = condensated_swot.assign_coords(indexes_sar)
+        condensated_swot = condensated_swot.expand_dims(["tile_line", "tile_sample"])
+        cpt["tile_with_SWOT_neighbors"] += 1
+    else:
+        app_logger.debug("one tile without SWOT neighbors")
+        cpt["tile_without_SWOT_neighbors"] += 1
+        condensated_swot = create_empty_coloc_res(indexes_sar_grid=indexes_sar)
+    return condensated_swot, cpt
+
+
+def get_swot_tree(dsswot):
+    """
+    
+    Arguments:
+        dsswot (xr.Dataset)
+    """
+    lonswot = dsswot["longitude"].values.ravel()
+    latswot = dsswot["latitude"].values.ravel()
+    maskswot = np.isfinite(lonswot) & np.isfinite(latswot)
+    points = np.c_[lonswot[maskswot], latswot[maskswot]]
+    treeswot = spatial.KDTree(points)
+    return treeswot
+
 def loop_on_each_sar_tiles(
     dssar, dsswotl2, radius_coloc, full_path_swot, cpt
 ) -> (xr.Dataset, collections.defaultdict):
@@ -377,21 +476,35 @@ def loop_on_each_sar_tiles(
     :param full_path_swot: str
     :param cpt: defaultdict
     :return:
+        ds_l2c (xr.Dataset)
+        ds_l2c_nadir (xr.Dataset)
+        cpt (collections.defaultdict)
     """
+    lines_to_keep_in_swot_swath = [28,29,30,39,40,41]
+    dsswotl2_closenadir = dsswotl2.isel({'num_pixels':lines_to_keep_in_swot_swath}) # selection validated in notebook
+    treeswot_nadir = get_swot_tree(dsswot=dsswotl2_closenadir)
+    treeswot = get_swot_tree(dsswot=dsswotl2)
+    # lonswot_nadir = dsswotl2_closenadir["longitude"].values.ravel()
+    # latswot_nadir = dsswotl2_closenadir["latitude"].values.ravel()
+    # maskswot_nadir = np.isfinite(lonswot_nadir) & np.isfinite(latswot_nadir)
+    # points = np.c_[lonswot_nadir[maskswot_nadir], latswot_nadir[maskswot_nadir]]
+    # treeswot_nadir = spatial.KDTree(points)
 
-    lonswot = dsswotl2["longitude"].values.ravel()
-    # lonswot = (lonswot + 180) % 360 - 180 # already done in read_swot_windwave_l2_file()
-    latswot = dsswotl2["latitude"].values.ravel()
-    maskswot = np.isfinite(lonswot) & np.isfinite(latswot)
-    app_logger.info(
-        "nb NaN in the 2km SWOT grid: %i/%i",
-        len(latswot) - maskswot.sum(),
-        len(latswot),
-    )
-    points = np.c_[lonswot[maskswot], latswot[maskswot]]
-    treeswot = spatial.KDTree(points)
+    # lonswot = dsswotl2["longitude"].values.ravel()
+
+    # # lonswot = (lonswot + 180) % 360 - 180 # already done in read_swot_windwave_l2_file()
+    # latswot = dsswotl2["latitude"].values.ravel()
+    # maskswot = np.isfinite(lonswot) & np.isfinite(latswot)
+    # app_logger.info(
+    #     "nb NaN in the 2km SWOT grid: %i/%i",
+    #     len(latswot) - maskswot.sum(),
+    #     len(latswot),
+    # )
+    # points = np.c_[lonswot[maskswot], latswot[maskswot]]
+    # treeswot = spatial.KDTree(points)
 
     all_tiles_colocs = []
+    all_tiles_colocs_nadir = []
     gridsarL2 = {
         d: k
         for d, k in dssar.sizes.items()
@@ -419,28 +532,50 @@ def loop_on_each_sar_tiles(
                 indexes_sar=i,
                 cpt=cpt,
             )
+            tile_swot_nadir_condensated_at_SAR_point, cpt = s1swot_core_tile_coloc_nadir(
+                lontile,
+                lattile,
+                treeswot_nadir,
+                radius_coloc,
+                dsswot=dsswotl2_closenadir,
+                indexes_sar=i,
+                cpt=cpt,
+            )
         else:
             cpt["tile_sar_with_corrupted_geolocation"] += 1
             tile_swot_condensated_at_SAR_point = create_empty_coloc_res(
                 indexes_sar_grid=i
             )
+            tile_swot_nadir_condensated_at_SAR_point = create_empty_coloc_res(
+                indexes_sar_grid=i
+            )
 
         all_tiles_colocs.append(tile_swot_condensated_at_SAR_point)
+        all_tiles_colocs_nadir.append(tile_swot_nadir_condensated_at_SAR_point)
     consolidated_all_tiles_colocs = []
+    consolidated_all_tiles_colocs_nadir = []
+    for uu in all_tiles_colocs_nadir:
+        if "dim_0" in uu.dims:
+            app_logger.debug("variables with dim_0 : %s", uu)
+        else:
+            consolidated_all_tiles_colocs_nadir.append(uu)
     for uu in all_tiles_colocs:
         if "dim_0" in uu.dims:
             app_logger.debug("variables with dim_0 : %s", uu)
         else:
             consolidated_all_tiles_colocs.append(uu)
     app_logger.info("merge the colocated tiles.")
+    ds_colocation_swot_nadir = xr.merge(consolidated_all_tiles_colocs_nadir)
     ds_colocation_swot = xr.merge(
         consolidated_all_tiles_colocs,
     )
     # xr.combine_by_coords(all_tiles_colocs)
     app_logger.info("merge SAR and SWOT data.")
-    ds_l1c = xr.merge([dssar, ds_colocation_swot])
-    ds_l1c.attrs["SWOT_L3_data"] = full_path_swot
-    return ds_l1c, cpt
+    ds_l2c = xr.merge([dssar, ds_colocation_swot])
+    ds_l2c.attrs["SWOT_L3_data"] = full_path_swot
+    ds_l2c_nadir = xr.merge([dssar, ds_colocation_swot_nadir])
+    ds_l2c_nadir.attrs["SWOT_L3_data"] = full_path_swot
+    return ds_l2c,ds_l2c_nadir, cpt
 
 
 def save_sea_state_coloc_file(colocds, fpath_out, cpt):
@@ -523,6 +658,7 @@ def associate_sar_and_swot_seastate_params(
                 iw_slc_safe, version_L1B=DEFAULT_IFREMER_S1_VERSION_L1B
             )
             for subswath_sar in ["iw1", "iw2", "iw3"]:
+                app_logger.info('subswath SAR : %s',subswath_sar)
                 sar_basename_part = (
                     os.path.basename(iw_slc_safe).replace(".SAFE", "")
                     + "-"
@@ -545,6 +681,23 @@ def associate_sar_and_swot_seastate_params(
                     #     ),
                     # ),
                     "seastate_coloc_%s_%s.nc" % (sar_basename_part, part_swot_basename),
+                )
+                fpath_out_nadir = os.path.join(
+                    outputdir,
+                    mode,
+                    "%s" % year,
+                    "%s" % month,
+                    "%s" % day,
+                    # os.path.basename(metacolocpath).replace(
+                    #     "coloc_",
+                    #     "seastate_coloc_%s_"
+                    #     % (
+                    #         os.path.basename(iw_slc_safe).replace(
+                    #             ".SAFE", "-" + subswath_sar
+                    #         )
+                    #     ),
+                    # ),
+                    "seastate_nadirlike_coloc_%s_%s.nc" % (sar_basename_part, part_swot_basename),
                 )
                 if os.path.exists(fpath_out) and overwrite is False:
                     cpt["output_file_already_existing"] += 1
@@ -594,7 +747,7 @@ def associate_sar_and_swot_seastate_params(
                             gdfswot, alpha=tolerance_simplification
                         )
                         if alpha_shape_swot.intersects(polygon_sar_swubswath):
-                            l2c_ds, cpt = loop_on_each_sar_tiles(
+                            l2c_ds,ds_l2c_nadir, cpt = loop_on_each_sar_tiles(
                                 dssar,
                                 dsswotl2=subswot,
                                 radius_coloc=conf["RADIUS_COLOC"],
@@ -604,6 +757,10 @@ def associate_sar_and_swot_seastate_params(
 
                             cpt = save_sea_state_coloc_file(
                                 colocds=l2c_ds, fpath_out=fpath_out, cpt=cpt
+                            )
+                            app_logger.info('redo association for close nadir data')
+                            cpt = save_sea_state_coloc_file(
+                                colocds=ds_l2c_nadir, fpath_out=fpath_out_nadir, cpt=cpt
                             )
                             new_files.append(fpath_out)
                         else:

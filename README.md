@@ -38,3 +38,8 @@ Python lib to create co-locations between Sentinel-1 IW or EW images and SWOT Ka
 # to use the lib
 coloc_SWOT_L3_with_S1_CDSE_TOPS_sequentiel --startmonth 20250616 --stopmonth 20250616 --confpath src/s1swotcolocs/localconfig.yml --outputdir /tmp/
 ```
+
+## illustration of a co-location between SWOT KaRIn swath and Sentinel-1 IW swath
+
+
+   ![coloc_swot_iw](docs/_static/figures/illustrate_coloc_s1_swot_iw.png)
